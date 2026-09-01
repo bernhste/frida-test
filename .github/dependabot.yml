@@ -5,7 +5,17 @@
 
 version: 2
 updates:
-  - package-ecosystem: "" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  - package-ecosystem: "npm"        # JavaScript/Node.js (package.json)
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"     # Dockerfile
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"  # .github/workflows/*.yml
+    directory: "/"
     schedule:
       interval: "weekly"
