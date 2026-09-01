@@ -1,0 +1,34 @@
+{
+  "name": "frida-test",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "vscode",
+  "runArgs": [
+    "--add-host=host.docker.internal:host-gateway"
+  ],
+  "initializeCommand": "bash .devcontainer/host-services-start.sh",
+  "containerEnv": {
+    "APPIUM_URL": "http://host.docker.internal:4723",
+    "FRIDA_HOST": "host.docker.internal:27042",
+    "ADB_SERVER_SOCKET": "tcp:host.docker.internal:5037"
+  },
+  "mounts": [
+    "source=${localWorkspaceFolderBasename}-bashhistory,target=/commandhistory,type=volume",
+    "source=${localWorkspaceFolderBasename}-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
+  ],
+  "postCreateCommand": "sudo chown -R vscode:vscode /commandhistory ${containerWorkspaceFolder}/node_modules",
+  "features": {
+    "ghcr.io/devcontainers/features/node:2.1.0": {
+      "version": "lts"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "DavidAnson.vscode-markdownlint"
+      ]
+    }
+  }
+}

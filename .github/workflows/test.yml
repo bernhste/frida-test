@@ -1,0 +1,75 @@
+name: Test frida-test
+
+on:
+  workflow_call:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  test:
+    name: Test host Android
+    runs-on: ubuntu-24.04
+    needs:
+      - build
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.ks
+        uses: ./.github/actions/setup-node
+
+      - name: Setup Python and Frida
+        uses: ./.github/actions/setup-frida
+
+      - name: Download frida-test artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: frida-test
+          path: frida-test
+
+      - name: Install frida-test
+        run: |
+          pkg=$(readlink -f frida-test/*.tgz)
+          npm install -g "$pkg"
+          npm install -g --allow-scripts=frida "$pkg"
+
+      - name: Setup Android emulator environment
+        uses: ./.github/actions/setup-android-emulator
+        with:
+          api-level: "34"
+
+      - name: Run tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            echo "Preparing scripts"
+            chmod +x .github/scripts/android/prep-device.sh
+            chmod +x .github/scripts/android/install-frida-server.sh
+
+            echo "Starting adb as root"
+            .github/scripts/android/prep-device.sh
+
+            echo "Installing frida server"
+            .github/scripts/android/install-frida-server.sh
+
+            echo "Run tests"
+            frida-test -U -i 'com.google.android.dialer' ./tests/ -o test-results-android.json
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-android
+          path: test-results-android.json

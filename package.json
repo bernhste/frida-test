@@ -1,0 +1,56 @@
+{
+  "name": "frida-test",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "homepage": "https://github.com/bernhste/frida-test/blob/main/README.md",
+  "description": "frida-test is a small unit framework based on Frida. It is used to unit test Frida code running on actual devices.",
+  "keywords": [
+    "frida",
+    "testing",
+    "instrumentation",
+    "hooking"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bernhste/frida-test.git"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "frida-test": "bin/frida-test.js",
+    "frida-test-compiler": "bin/frida-test-compiler.js"
+  },
+  "types": "./src/agent-runtime/globals.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/agent-runtime/globals.d.ts",
+      "default": "./src/agent-runtime/globals.ts"
+    }
+  },
+  "files": [
+    "dist/",
+    "bin/",
+    "src/agent-runtime"
+  ],
+  "scripts": {
+    "build": "npx tsc -b  &&  npm link",
+    "test:android": "npm run build && frida-test -U  -i 'com.google.android.dialer' ./tests/",
+    "watch": "npx tsc -b --watch",
+    "clean": "npx tsc -b --clean && npx rimraf dist"
+  },
+  "allowScripts": {
+    "frida": true
+  },
+  "dependencies": {
+    "chalk": "^6.0.0",
+    "frida-compile": "^19.0.5"
+  },
+  "devDependencies": {
+    "@types/frida-gum": "^19.10.0",
+    "@types/node": "^26.4.0",
+    "rimraf": "^6.1.3",
+    "typescript": "^7.0.2"
+  }
+}

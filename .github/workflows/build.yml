@@ -1,0 +1,34 @@
+name: Build frida-test
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build frida-test
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.ks
+        uses: ./.github/actions/setup-node
+
+      - name: Build frida-test
+        run: npm run build
+
+      - name: Package frida-test
+        run: |
+          mkdir -p ./dist-pack
+          npm pack --pack-destination ./dist-pack
+
+      - name: Upload frida-test artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: frida-test
+          path: dist-pack/*.tgz
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,33 @@
+name: Publish dry-tun
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  publish-dry-run:
+    runs-on: ubuntu-24.04
+    needs: test
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frida-test artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: frida-test
+          path: frida-test
+
+      # - run: |
+      #     pkg=$(readlink -f frida-test/*.tgz)
+      #     npm publish "$pkg" --access public
+      - run: |
+          pkg=$(readlink -f frida-test/*.tgz)
+          npm publish "$pkg" --dry-run
+
