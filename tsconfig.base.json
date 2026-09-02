@@ -6,6 +6,8 @@
     "moduleResolution": "nodenext",
     "strict": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true
   }
 }
