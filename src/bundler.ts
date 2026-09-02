@@ -1,18 +1,17 @@
-import { execFile } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 import { logger } from "./logger.js";
 
 const IMPORT_MARKER = "/// IMPORT TESTS SUITES ///";
-const execFileAsync = promisify(execFile);
-
 const AGENT_ENTRYPOINT_FILENAME = "agentRuntime.ts";
-const AGENT_ENTRYPOINT_BASENAME = path.basename(AGENT_ENTRYPOINT_FILENAME, path.extname(AGENT_ENTRYPOINT_FILENAME));
+const AGENT_ENTRYPOINT_BASENAME = path.parse(AGENT_ENTRYPOINT_FILENAME).name;
 const AGENT_BUNDLE_FILENAME = `${AGENT_ENTRYPOINT_BASENAME}.bundle.js`;
 
-function resolveProjectRoot(startDir: string = process.cwd()): string {
+function getProjectRoot(): string {
+  const startDir = process.cwd();
   let dir = startDir;
   while (true) {
     if (existsSync(path.join(dir, "package.json"))) return dir;
@@ -22,53 +21,45 @@ function resolveProjectRoot(startDir: string = process.cwd()): string {
   }
 }
 
-function resolveAgentRuntimePath(projectRoot: string): string {
-  return path.join(projectRoot, "src", "agent-runtime");
-}
-
-function resolveFridaCompileBin(projectRoot: string): string {
-  const binName = process.platform === "win32" ? "frida-compile.cmd" : "frida-compile";
-  return path.join(projectRoot, "node_modules", ".bin", binName);
-}
-
-let cachedProjectRoot: string | undefined;
-let cachedAgentRuntimeSrcDir: string | undefined;
-let cachedFridaCompileBin: { path: string; useLocal: boolean } | undefined;
-
-function getProjectRoot(): string {
-  cachedProjectRoot ??= resolveProjectRoot();
-  return cachedProjectRoot;
-}
-
-function getAgentRuntimeSrcDir(projectRoot: string): string {
-  if (!cachedAgentRuntimeSrcDir) {
-    const dir = resolveAgentRuntimePath(projectRoot);
-    if (!existsSync(dir)) {
-      throw new Error(`Agent runtime source directory not found at "${dir}".`);
+function getPackageRoot(): string {
+  let dir = path.dirname(fileURLToPath(import.meta.url));
+  while (true) {
+    if (existsSync(path.join(dir, "package.json"))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      throw new Error("Could not locate frida-test's own package.json.");
     }
-    cachedAgentRuntimeSrcDir = dir;
+    dir = parent;
   }
-  return cachedAgentRuntimeSrcDir;
+}
+
+function getAgentRuntimeSrcDir(): string {
+  const dir = path.join(getPackageRoot(), "src", "agent-runtime");
+  if (!existsSync(dir)) {
+    throw new Error(`Agent runtime source directory not found at "${dir}".`);
+  }
+  return dir;
 }
 
 function getFridaCompileBin(projectRoot: string): { path: string; useLocal: boolean } {
-  if (!cachedFridaCompileBin) {
-    const localBin = resolveFridaCompileBin(projectRoot);
-    cachedFridaCompileBin = existsSync(localBin) ? { path: localBin, useLocal: true } : { path: "npx", useLocal: false };
-  }
-  return cachedFridaCompileBin;
+  const binName = process.platform === "win32" ? "frida-compile.cmd" : "frida-compile";
+  const localBin = path.join(projectRoot, "node_modules", ".bin", binName);
+  return existsSync(localBin) ? { path: localBin, useLocal: true } : { path: "npx", useLocal: false };
 }
 
 async function createWorkDir(projectRoot: string): Promise<string> {
-  const cacheRoot = path.join(projectRoot, ".frida-test-cache");
-  await mkdir(cacheRoot, { recursive: true });
+  const workdirRoot = path.join(projectRoot, ".frida-test-cache");
+  await mkdir(workdirRoot, { recursive: true });
 
-  const gitignorePath = path.join(cacheRoot, ".gitignore");
+  const gitignorePath = path.join(workdirRoot, ".gitignore");
   if (!existsSync(gitignorePath)) {
     await writeFile(gitignorePath, "*\n", "utf8");
   }
 
-  return mkdtemp(cacheRoot + path.sep);
+  const workdir = await mkdtemp(workdirRoot + path.sep);
+  logger.info(`Temporary workdir created at ${workdir}`);
+
+  return workdir;
 }
 
 async function deleteWorkDir(workDir: string): Promise<void> {
@@ -77,25 +68,6 @@ async function deleteWorkDir(workDir: string): Promise<void> {
   } catch (err) {
     logger.warn(`Failed to remove temporary work dir "${workDir}": ${(err as Error).message}`);
   }
-}
-
-async function copyDirRecursive(srcDir: string, destDir: string): Promise<void> {
-  await mkdir(destDir, { recursive: true });
-  const entries = await readdir(srcDir, { withFileTypes: true });
-
-  await Promise.all(
-    entries.map(async (entry) => {
-      const srcPath = path.join(srcDir, entry.name);
-      const destPath = path.join(destDir, entry.name);
-
-      if (entry.isDirectory()) {
-        await copyDirRecursive(srcPath, destPath);
-        return;
-      }
-
-      await copyFile(srcPath, destPath);
-    }),
-  );
 }
 
 export async function bundleAgent(testSuitePaths: string[], keep: boolean = false): Promise<string> {
@@ -107,8 +79,9 @@ export async function bundleAgent(testSuitePaths: string[], keep: boolean = fals
   const workDir = await createWorkDir(projectRoot);
 
   try {
-    const agentRuntimeSrcDir = getAgentRuntimeSrcDir(projectRoot);
-    await copyDirRecursive(agentRuntimeSrcDir, workDir);
+    const agentRuntimeSrcDir = getAgentRuntimeSrcDir();
+    logger.info(`Agent runtime found in ${agentRuntimeSrcDir}`);
+    await cp(agentRuntimeSrcDir, workDir, { recursive: true });
 
     const entrypointPath = path.join(workDir, AGENT_ENTRYPOINT_FILENAME);
 
@@ -131,28 +104,28 @@ export async function bundleAgent(testSuitePaths: string[], keep: boolean = fals
     const outfilePath = path.join(workDir, AGENT_BUNDLE_FILENAME);
     const fridaCompile = getFridaCompileBin(projectRoot);
 
-    let stdout: string;
-    let stderr: string;
-    try {
-      const args = fridaCompile.useLocal ? [entrypointPath, "-o", outfilePath] : ["frida-compile", entrypointPath, "-o", outfilePath];
+    const args = fridaCompile.useLocal ? [entrypointPath, "-o", outfilePath] : ["frida-compile", entrypointPath, "-o", outfilePath];
 
-      ({ stdout, stderr } = await execFileAsync(fridaCompile.path, args, {
+    try {
+      execFileSync(fridaCompile.path, args, {
         cwd: projectRoot,
         shell: process.platform === "win32",
-      }));
+        encoding: "utf8",
+      });
     } catch (err) {
+      const stderr = (err as { stderr?: Buffer | string }).stderr?.toString().trim();
       throw new Error(
-        `frida-compile failed for entrypoint "${entrypointPath}" with suites [${testSuitePaths.join(", ")}]: ${(err as Error).message}`,
+        `frida-compile failed for entrypoint "${entrypointPath}" with suites [${testSuitePaths.join(", ")}]: ${stderr || (err as Error).message}`,
         { cause: err },
       );
     }
 
-    if (stdout.trim()) logger.log(`[frida-compile] ${stdout.trim()}`);
-    if (stderr.trim()) logger.warn(`[frida-compile] ${stderr.trim()}`);
+    logger.info(`Agent bundle sucessfully created and saved at ${outfilePath}.`);
 
     return await readFile(outfilePath, "utf8");
   } finally {
     if (!keep) {
+      logger.info(`Cleaning up workdir.`);
       await deleteWorkDir(workDir);
     }
   }

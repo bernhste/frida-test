@@ -116,10 +116,10 @@ frida-test -i org.owasp.mastestapp.MASTestApp-iOS ./tests/ios ./tests/shared
 
 `frida-test` automatically bundles the test suites, and compiles them together with the testing framework into a Frida agent.
 
-If you only want to compile this agent, use `frida-test-compiler`:
+If you only want to compile this agent, use `frida-test-compile`:
 
 ```sh
-frida-test-compiler [options] <dir...>
+frida-test-compile [options] <dir...>
 ```
 
 | Option | Description |
@@ -127,12 +127,12 @@ frida-test-compiler [options] <dir...>
 | `-o, --out <path>` | Path of the output file for JSON reporter (default: disabled) |
 | `-h, --help` | Shows the help message |
 
-### `frida-test-compiler` Examples
+### `frida-test-compile` Examples
 
 ```sh
 # Collects all tests in ./tests, compiles the frida-test agent, and print it to stdout
-frida-test-compiler ./tests
+frida-test-compile ./tests
 
 # Collects all tests in ./tests, compile the frida-test agent, and stores it in the path ./frida-test-agent.js
-frida-test-compiler ./tests -o ./frida-test-agent.js
+frida-test-compile ./tests -o ./frida-test-agent.js
 ```
