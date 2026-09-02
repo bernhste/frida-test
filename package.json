@@ -1,6 +1,6 @@
 {
   "name": "frida-test",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "license": "GPL-3.0-only",
   "homepage": "https://github.com/bernhste/frida-test/blob/main/README.md",
@@ -20,7 +20,7 @@
   },
   "bin": {
     "frida-test": "bin/frida-test.js",
-    "frida-test-compiler": "bin/frida-test-compiler.js"
+    "frida-test-compile": "bin/frida-test-compile.js"
   },
   "types": "./src/agent-runtime/globals.d.ts",
   "exports": {
