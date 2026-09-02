@@ -6,5 +6,5 @@
     "types": ["node", "frida-gum"]
   },
   "include": ["src/**/*"],
-  "exclude": ["src/agent-runtime", "src/protocol"]
+  "exclude": ["src/agent-runtime"]
 }
