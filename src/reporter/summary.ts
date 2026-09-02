@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import type { RunSummary } from "../protocol.js";
+import type { RunSummary } from "../protocol/protocol.js";
 
 function formatDuration(ms: number): string {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;

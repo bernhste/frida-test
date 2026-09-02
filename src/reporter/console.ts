@@ -1,5 +1,5 @@
 import { logger } from "../logger.js";
-import { type TestResult, type TestStatus, type TestSuiteResult } from "../protocol.js";
+import { type TestResult, type TestStatus, type TestSuiteResult } from "../protocol/protocol.js";
 
 const STATUS_SYMBOLS: Record<TestStatus, string> = {
   passed: "✅",

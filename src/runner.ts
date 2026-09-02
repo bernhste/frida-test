@@ -2,8 +2,8 @@
 import type { Device, Message, Script, Session } from "frida";
 import type { Target } from "./device.js";
 import { logger } from "./logger.js";
-import type { RunSummary, TestSuiteResult } from "./protocol.js";
-import { isAgentMessage } from "./protocol.js";
+import type { RunSummary, TestSuiteResult } from "./protocol/protocol.js";
+import { isAgentMessage } from "./protocol/protocol.js";
 import { printTestSuiteResult } from "./reporter/console.js";
 
 export class TestRunner {

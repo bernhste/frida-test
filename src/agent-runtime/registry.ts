@@ -1,4 +1,4 @@
-import { type AgentMessage, type RunSummary, type TestError, type TestResult, type TestStatus, type TestSuiteResult } from "../../src/protocol.js";
+import { type AgentMessage, type RunSummary, type TestError, type TestResult, type TestStatus, type TestSuiteResult } from "frida-test/protocol.js";
 
 export type TestFn = () => void | Promise<void>;
 

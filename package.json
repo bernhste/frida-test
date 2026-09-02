@@ -1,6 +1,6 @@
 {
   "name": "frida-test",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "license": "GPL-3.0-only",
   "homepage": "https://github.com/bernhste/frida-test/blob/main/README.md",
@@ -29,8 +29,8 @@
       "default": "./src/agent-runtime/globals.ts"
     },
     "./protocol.js": {
-      "types": "./src/protocol.ts",
-      "default": "./src/protocol.ts"
+      "types": "./src/protocol/protocol.ts",
+      "default": "./src/protocol/protocol.ts"
     }
   },
   "files": [
