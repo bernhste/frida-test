@@ -1,3 +1,10 @@
+import chalk from "chalk";
+import { writeFile } from "node:fs/promises";
+import { parseArgs } from "node:util";
+import { bundleAgent } from "./bundler.js";
+import { collectTestSuitePaths } from "./collector.js";
+import { logger } from "./logger.js";
+
 const usage = `
   Usage: frida-test-compiler [options] <src_path>...
 
@@ -6,39 +13,48 @@ const usage = `
     -h, --help                      Show this help message
 `;
 
-import { writeFile } from "node:fs/promises";
-import { bundleAgent } from "./bundler.js";
-import { collectTestSuitePaths } from "./collector.js";
+class CliError extends Error {}
 
-const args = process.argv.slice(2);
+function fail(message: string): never {
+  throw new CliError(message);
+}
 
-let outPath: string | undefined;
-const srcPaths: string[] = [];
+async function main(): Promise<void> {
+  const { values, positionals } = parseArgs({
+    allowPositionals: true,
+    options: {
+      out: { type: "string", short: "o" },
+      help: { type: "boolean", short: "h", default: false },
+    },
+  });
 
-for (let i = 0; i < args.length; i++) {
-  const arg = args[i];
-
-  if (arg === "-o" || arg === "--out") {
-    outPath = args[++i];
-  } else if (arg === "-h" || arg === "--help") {
+  if (values.help) {
     console.log(usage);
-    process.exit(0);
+    return;
+  }
+
+  if (positionals.length === 0) {
+    fail("Missing required argument <src_path>...");
+  }
+
+  const testSuitePaths = await collectTestSuitePaths(positionals);
+
+  const bundle = await bundleAgent(testSuitePaths);
+
+  if (values.out) {
+    await writeFile(values.out, bundle, "utf8");
   } else {
-    srcPaths.push(arg);
+    console.log(bundle);
   }
 }
 
-if (srcPaths.length === 0) {
-  console.error(usage);
-  process.exit(1);
-}
-
-const testSuitePaths = await collectTestSuitePaths(srcPaths);
-
-const bundle = await bundleAgent(testSuitePaths);
-
-if (outPath) {
-  await writeFile(outPath, bundle, "utf8");
-} else {
-  console.log(bundle);
-}
+main().catch((error: unknown) => {
+  if (error instanceof CliError) {
+    logger.error(error.message);
+    console.log(chalk.dim(usage));
+  } else {
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`Fatal error: ${msg}`);
+  }
+  process.exitCode = 1;
+});
