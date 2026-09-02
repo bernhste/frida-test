@@ -35,11 +35,11 @@
     "src/agent-runtime"
   ],
   "scripts": {
-    "build": "npx tsc -b  &&  npm link",
-    "test:android": "npm run build && frida-test -U  -i 'com.google.android.dialer' ./tests/ ",
-    "watch": "npx tsc -b --watch",
-    "clean": "npx tsc -b --clean && npx rimraf dist",
-    "publish": "npm run clean && npm run test:android && npm publish"
+    "build": "tsc -b",
+    "watch": "tsc -b --watch",
+    "clean": "tsc -b --clean && rimraf dist",
+    "test:android": "npm run build && frida-test -U -i 'com.google.android.dialer' ./tests/",
+    "prepublishOnly": "npm run clean && npm run build && npm run test:android"
   },
   "allowScripts": {
     "frida": true
