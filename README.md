@@ -1,6 +1,6 @@
 # frida-test Documentation
 
-This is a small test framework which runs on the target. It is used to unit test Frida code running on actual devices. It was originaly developed to test the Frida agent code used in [frooky](https://github.com/cpholguera/frooky).
+This is a small test framework which runs on the target. It is used to unit test Frida code running on actual devices. It was originally developed to test the Frida agent code used in [frooky](https://github.com/cpholguera/frooky).
 
 The following chapters explain how to write and run tests.
 
@@ -8,6 +8,7 @@ The following chapters explain how to write and run tests.
 
 ```sh
 npm install --save-dev frida-test
+
 ```
 
 ## Writing Tests
@@ -28,6 +29,7 @@ describe('Classloader', () => {
     }).toThrow(new Error("Class 'badClass' is not available."));
   })
 });
+
 ```
 
 Tests can be nested to any depth and can be synchronous or asynchronous.
@@ -49,6 +51,7 @@ myProject/
 └── shared/
     ├── helper.ts
     └── helper.test.ts
+
 ```
 
 ## Matchers
@@ -82,16 +85,26 @@ myProject/
 
 ```sh
 frida-test [options] <dir...>
+
 ```
 
 ### Options
 
 | Option | Description |
 | --- | --- |
-| `-i, --id <id>` | Bundle/package id or app name (spawns the app) |
-| `-p, --pid <id>` | Attach to a running process instead |
-| `-U, --usb` | Use the USB device |
-| `-D, --device <id>` | Use a specific device by id |
+| `-D, --device <id>` | Connect to device with the given ID |
+| `-U, --usb` | Connect to USB device |
+| `-R, --remote` | Connect to remote frida-server |
+| `-H, --host <host>` | Connect to remote frida-server on HOST |
+| `--certificate <cert>` | Speak TLS with HOST, expecting CERTIFICATE |
+| `--origin <origin>` | Connect to remote server with "Origin" header set to ORIGIN |
+| `--token <token>` | Authenticate with HOST using TOKEN |
+| `--keepalive-interval <interval>` | Set keepalive interval in seconds, or 0 to disable (defaults to -1) |
+| `-f, --file <target>` | Spawn FILE |
+| `-F, --attach-frontmost` | Attach to frontmost application |
+| `-n, --attach-name <name>` | Attach to NAME |
+| `-N, --attach-identifier <id>` | Attach to IDENTIFIER |
+| `-p, --attach-pid <pid>` | Attach to PID |
 | `-o, --out <path>` | Path of the output file for JSON reporter (default: disabled) |
 | `-t, --timeout <s>` | Abort the run after this many seconds (default: `600`, `0` disables) |
 | `-d, --delay <s>` | Start running the test suites after this many seconds (default: `0`) |
@@ -102,24 +115,29 @@ frida-test [options] <dir...>
 ### `frida-test` Examples
 
 ```sh
-# Android app on a USB device, tests in ./tests/android and ./tests/shared
-frida-test -i org.owasp.mastestapp -U ./tests/android ./tests/shared
+# Spawn an Android app on a USB device, tests in ./tests/android and ./tests/shared
+frida-test -U -f org.owasp.mastestapp ./tests/android ./tests/shared
 
-# Attach to a running process by pid
-frida-test --pid 4926 -u ./tests/android
+# Attach to a running process by PID on a USB device
+frida-test -U -p 4926 ./tests/android
 
-# iOS app in the local simulator
-frida-test -i org.owasp.mastestapp.MASTestApp-iOS ./tests/ios ./tests/shared
+# Attach to a running iOS app by identifier
+frida-test -U -N org.owasp.mastestapp.MASTestApp-iOS ./tests/ios ./tests/shared
+
+# Connect to a remote frida-server on HOST with authentication
+frida-test -H 192.168.1.10:27042 --token secret -p 4926 ./tests/shared
+
 ```
 
 ## Compile Agent
 
-`frida-test` automatically bundles the test suites, and compiles them together with the testing framework into a Frida agent.
+`frida-test` automatically bundles the test suites and compiles them together with the testing framework into a Frida agent.
 
 If you only want to compile this agent, use `frida-test-compile`:
 
 ```sh
 frida-test-compile [options] <dir...>
+
 ```
 
 | Option | Description |
@@ -130,9 +148,10 @@ frida-test-compile [options] <dir...>
 ### `frida-test-compile` Examples
 
 ```sh
-# Collects all tests in ./tests, compiles the frida-test agent, and print it to stdout
+# Collects all tests in ./tests, compiles the frida-test agent, and prints it to stdout
 frida-test-compile ./tests
 
-# Collects all tests in ./tests, compile the frida-test agent, and stores it in the path ./frida-test-agent.js
+# Collects all tests in ./tests, compiles the frida-test agent, and stores it in ./frida-test-agent.js
 frida-test-compile ./tests -o ./frida-test-agent.js
+
 ```
