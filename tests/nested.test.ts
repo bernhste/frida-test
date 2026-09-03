@@ -1,3 +1,4 @@
+/// <reference types="../src/agent-runtime/globals.d.ts" />
 describe("Test suites with nested tests", () => {
   it("should test it() at level 0", () => {
     expect(true).toBeTruthy();

@@ -1,3 +1,4 @@
+/// <reference types="../src/agent-runtime/globals.d.ts" />
 describe("Exception", () => {
   describe("toThrow", () => {
     it("should pass when function throws with matching Error instance", () => {

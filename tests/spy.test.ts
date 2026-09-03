@@ -1,3 +1,4 @@
+/// <reference types="../src/agent-runtime/globals.d.ts" />
 describe("spyOn", () => {
   it("should call through to the original implementation by default", () => {
     const target = { double: (n: number) => n * 2 };

@@ -1,3 +1,4 @@
+/// <reference types="../src/agent-runtime/globals.d.ts" />
 describe("Basic Matcher", () => {
   describe("toBe", () => {
     it("should pass when values are strictly equal", () => {

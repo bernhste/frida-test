@@ -1,3 +1,4 @@
+/// <reference types="../src/agent-runtime/globals.d.ts" />
 import { returnOne } from "./import.js";
 
 describe("Test suites with imports", () => {

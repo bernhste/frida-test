@@ -1,3 +1,4 @@
+/// <reference types="../src/agent-runtime/globals.d.ts" />
 describe("Promise", () => {
   describe("toResolve", () => {
     it("should pass when a promise resolves", async () => {
