@@ -4,12 +4,9 @@
     "dockerfile": "Dockerfile"
   },
   "remoteUser": "vscode",
-  "runArgs": [
-    "--add-host=host.docker.internal:host-gateway"
-  ],
+  "runArgs": ["--add-host=host.docker.internal:host-gateway"],
   "initializeCommand": "bash .devcontainer/host-services-start.sh",
   "containerEnv": {
-    "APPIUM_URL": "http://host.docker.internal:4723",
     "FRIDA_HOST": "host.docker.internal:27042",
     "ADB_SERVER_SOCKET": "tcp:host.docker.internal:5037"
   },
@@ -25,10 +22,7 @@
   },
   "customizations": {
     "vscode": {
-      "extensions": [
-        "esbenp.prettier-vscode",
-        "DavidAnson.vscode-markdownlint"
-      ]
+      "extensions": ["esbenp.prettier-vscode", "DavidAnson.vscode-markdownlint"]
     }
   }
 }
