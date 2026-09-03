@@ -8,7 +8,16 @@ The following chapters explain how to write and run tests.
 
 ```sh
 npm install --save-dev frida-test
+```
 
+After the installation, import the type `frida-test` into you project by adding the following configuration to the `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "types": ["frida-test"]
+  }
+}
 ```
 
 ## Writing Tests
@@ -29,7 +38,6 @@ describe('Classloader', () => {
     }).toThrow(new Error("Class 'badClass' is not available."));
   })
 });
-
 ```
 
 Tests can be nested to any depth and can be synchronous or asynchronous.
@@ -51,7 +59,6 @@ myProject/
 └── shared/
     ├── helper.ts
     └── helper.test.ts
-
 ```
 
 ## Matchers
@@ -85,7 +92,6 @@ myProject/
 
 ```sh
 frida-test [options] <dir...>
-
 ```
 
 ### Options
@@ -126,7 +132,6 @@ frida-test -U -N org.owasp.mastestapp.MASTestApp-iOS ./tests/ios ./tests/shared
 
 # Connect to a remote frida-server on HOST with authentication
 frida-test -H 192.168.1.10:27042 --token secret -p 4926 ./tests/shared
-
 ```
 
 ## Compile Agent
@@ -137,7 +142,6 @@ If you only want to compile this agent, use `frida-test-compile`:
 
 ```sh
 frida-test-compile [options] <dir...>
-
 ```
 
 | Option | Description |
@@ -153,5 +157,4 @@ frida-test-compile ./tests
 
 # Collects all tests in ./tests, compiles the frida-test agent, and stores it in ./frida-test-agent.js
 frida-test-compile ./tests -o ./frida-test-agent.js
-
 ```
