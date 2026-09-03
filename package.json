@@ -49,7 +49,7 @@
     "build": "tsc -b",
     "watch": "tsc -b --watch",
     "clean": "tsc -b --clean && rimraf dist",
-    "test:android": "npm run build && frida-test -U -i 'com.google.android.dialer' ./tests/",
+    "test:android": "npm run build && frida-test -U -f 'com.google.android.dialer' ./tests/",
     "prepublishOnly": "npm run clean && npm run build && npm run test:android"
   },
   "allowScripts": {

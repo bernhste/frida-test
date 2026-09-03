@@ -1,43 +1,13 @@
 import type { Device } from "frida";
-import frida from "frida";
-
-export type DeviceSelector =
-  | "usb"
-  | "local"
-  | "remote"
-  | { id: string }
-  | {
-      host: string;
-      certificate?: string;
-      origin?: string;
-      token?: string;
-      keepaliveInterval?: number;
-    };
-
-export type TargetDef = { file: string } | { frontmost: true } | { name: string } | { identifier: string } | { pid: number };
-
-export async function resolveDevice(selector: DeviceSelector = "local"): Promise<Device> {
-  if (selector === "usb") return frida.getUsbDevice();
-  if (selector === "local") return frida.getLocalDevice();
-  if (selector === "remote") return frida.getRemoteDevice();
-  if ("id" in selector) return frida.getDevice(selector.id);
-
-  // Pass network parameters to addRemoteDevice
-  const manager = frida.getDeviceManager();
-  return manager.addRemoteDevice(selector.host, {
-    certificate: selector.certificate,
-    origin: selector.origin,
-    token: selector.token,
-    keepaliveInterval: selector.keepaliveInterval,
-  });
-}
 
 export interface Target {
   pid: number;
   wasSpawned: boolean;
 }
+export type TargetDef = { file: string } | { frontmost: true } | { name: string } | { identifier: string } | { pid: number };
 
 export async function resolveTarget(device: Device, targetDef: TargetDef): Promise<Target> {
+  // Spawn target binary or app (-f, --file)
   if ("file" in targetDef) {
     const file = targetDef.file.trim();
     if (!file) throw new Error("Target file/program must not be empty");
@@ -45,10 +15,12 @@ export async function resolveTarget(device: Device, targetDef: TargetDef): Promi
     return { pid, wasSpawned: true };
   }
 
+  // Attach by PID (-p, --attach-pid)
   if ("pid" in targetDef) {
     return { pid: targetDef.pid, wasSpawned: false };
   }
 
+  // Attach to frontmost application (-F, --attach-frontmost)
   if ("frontmost" in targetDef) {
     const app = await device.getFrontmostApplication();
     if (!app) {
@@ -57,6 +29,7 @@ export async function resolveTarget(device: Device, targetDef: TargetDef): Promi
     return { pid: app.pid, wasSpawned: false };
   }
 
+  // Attach by process name (-n, --attach-name)
   if ("name" in targetDef) {
     const targetName = targetDef.name.trim();
     if (!targetName) throw new Error("Target process name must not be empty");
@@ -81,6 +54,7 @@ export async function resolveTarget(device: Device, targetDef: TargetDef): Promi
     return { pid: matches[0].pid, wasSpawned: false };
   }
 
+  // Attach to running application by identifier (-N, --attach-identifier) without spawning
   const identifier = targetDef.identifier.trim();
   if (!identifier) throw new Error("Target identifier must not be empty");
 
