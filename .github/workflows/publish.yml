@@ -43,3 +43,12 @@ jobs:
         run: |
           pkg=$(readlink -f frida-test/*.tgz)
           npm publish "$pkg" --access public
+
+
+      - name: Attach package to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pkg=$(readlink -f frida-test/*.tgz)
+          gh release upload "${{ github.event.release.tag_name }}" "$pkg"
