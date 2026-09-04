@@ -1,0 +1,45 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  publish:
+    runs-on: ubuntu-24.04
+    needs: test
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download frida-test artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: frida-test
+          path: frida-test
+
+      - name: Setup Node.js
+        uses: ./.github/actions/setup-node
+
+      - name: Check version matches tag
+        if: github.event_name == 'release'
+        run: |
+          pkg_version="v$(node -p "require('./package.json').version")"
+          tag_name="${{ github.event.release.tag_name }}"
+          if [ "$pkg_version" != "$tag_name" ]; then
+            echo "package.json version ($pkg_version) does not match release tag ($tag_name)"
+            exit 1
+          fi
+
+      - name: Publish
+        run: |
+          pkg=$(readlink -f frida-test/*.tgz)
+          npm publish "$pkg" --access public
