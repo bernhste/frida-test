@@ -42,41 +42,6 @@ describe('Classloader', () => {
 
 Tests can be nested to any depth and can be synchronous or asynchronous.
 
-### Setup and Teardown
-
-Use `beforeEach()` / `afterEach()` and `beforeAll()` / `afterAll()` to run code before or after tests. They can be declared at the top level of a file or inside a `describe()` block:
-
-- `beforeEach()` / `afterEach()`: Run before/after every `it()` in the same and nested `describe()` blocks.
-- `beforeAll()` / `afterAll()`: Run once before/after all tests in the same `describe()` block (or, at the top level, once before/after the whole file).
-
-Hooks declared in an outer `describe()` also apply to tests in nested `describe()` blocks. `beforeEach` hooks run outer-to-inner; `afterEach` hooks run inner-to-outer.
-
-```typescript
-describe('ClassLoader', () => {
-  let loader: ClassLoader;
-
-  beforeAll(() => {
-    loader = new ClassLoader();
-  });
-
-  beforeEach(() => {
-    loader.reset();
-  });
-
-  afterEach(() => {
-    loader.clearCache();
-  });
-
-  afterAll(() => {
-    loader.destroy();
-  });
-
-  it('should load a known class', () => {
-    expect(loader.load('com.example.Foo')).toBeDefined();
-  });
-});
-```
-
 ### Test discovery
 
 The framework collects every file matching `*.test.ts` in the directories passed on the command line, recursively.
@@ -120,6 +85,41 @@ myProject/
 
 > [!NOTE]
 > `frida-test` test itself. So for examples for all Matches and more, have a look a the `*.test.ts` located in the [test folder](./tests/)
+
+### Setup and Teardown
+
+Use `beforeEach()` / `afterEach()` and `beforeAll()` / `afterAll()` to run code before or after tests. They can be declared at the top level of a file or inside a `describe()` block:
+
+- `beforeEach()` / `afterEach()`: Run before/after every `it()` in the same and nested `describe()` blocks.
+- `beforeAll()` / `afterAll()`: Run once before/after all tests in the same `describe()` block (or, at the top level, once before/after the whole file).
+
+Hooks declared in an outer `describe()` also apply to tests in nested `describe()` blocks. `beforeEach` hooks run outer-to-inner; `afterEach` hooks run inner-to-outer.
+
+```typescript
+describe('ClassLoader', () => {
+  let loader: ClassLoader;
+
+  beforeAll(() => {
+    loader = new ClassLoader();
+  });
+
+  beforeEach(() => {
+    loader.reset();
+  });
+
+  afterEach(() => {
+    loader.clearCache();
+  });
+
+  afterAll(() => {
+    loader.destroy();
+  });
+
+  it('should load a known class', () => {
+    expect(loader.load('com.example.Foo')).toBeDefined();
+  });
+});
+```
 
 ## Running Tests
 
