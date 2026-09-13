@@ -252,35 +252,29 @@ export async function runTests(nodes: TestSuiteNode[], emit: (message: AgentMess
 
   const parentHooks: EachHooks = { beforeEach: rootHooks.beforeEach, afterEach: rootHooks.afterEach };
 
-  const settled = await Promise.allSettled(
-    nodes.map(async (node) => {
-      emit({ type: "test-suite-started", name: node.name });
-      const { result: testResult, counts } = await runTestSuiteNode(node, verbose, parentHooks);
-      const suiteResult: TestSuiteResult = { name: node.name, testResult, status: testResult.status };
-      emit({ type: "test-suite-finished", name: node.name, result: suiteResult });
-      return { suiteResult, counts };
-    }),
-  );
-
   const testSuitesResults: TestSuiteResult[] = [];
   let counts = ZERO_COUNTS;
 
-  settled.forEach((outcome, i) => {
-    if (outcome.status === "fulfilled") {
-      testSuitesResults.push(outcome.value.suiteResult);
-      counts = addCounts(counts, outcome.value.counts);
-      return;
+  for (const node of nodes) {
+    emit({ type: "test-suite-started", name: node.name });
+    try {
+      const { result: testResult, counts: nodeCounts } = await runTestSuiteNode(node, verbose, parentHooks);
+      const suiteResult: TestSuiteResult = { name: node.name, testResult, status: testResult.status };
+      emit({ type: "test-suite-finished", name: node.name, result: suiteResult });
+      testSuitesResults.push(suiteResult);
+      counts = addCounts(counts, nodeCounts);
+    } catch (err) {
+      const error = serializeError(err, verbose);
+      const suiteResult: TestSuiteResult = {
+        name: node.name,
+        testResult: { name: node.name, status: "failed", durationMs: 0, error },
+        status: "failed",
+      };
+      emit({ type: "test-suite-finished", name: node.name, result: suiteResult });
+      testSuitesResults.push(suiteResult);
+      counts = addCounts(counts, { total: 1, passed: 0, failed: 1 });
     }
-
-    const error = serializeError(outcome.reason, verbose);
-    const testSuiteResult: TestSuiteResult = {
-      name: nodes[i].name,
-      testResult: { name: nodes[i].name, status: "failed", durationMs: 0, error },
-      status: "failed",
-    };
-    testSuitesResults.push(testSuiteResult);
-    counts = addCounts(counts, { total: 1, passed: 0, failed: 1 });
-  });
+  }
 
   const afterAllError = await runTeardownHooks(rootHooks.afterAll, verbose);
   if (afterAllError) {
