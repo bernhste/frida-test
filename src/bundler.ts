@@ -70,6 +70,22 @@ async function deleteWorkDir(workDir: string): Promise<void> {
   }
 }
 
+async function prepareTypeCheckConfig(projectRoot: string, workDir: string): Promise<void> {
+  const realTsconfigPath = path.join(projectRoot, "tsconfig.json");
+  if (!existsSync(realTsconfigPath)) return;
+
+  const scratchConfig = {
+    extends: realTsconfigPath.replace(/\\/g, "/"),
+    compilerOptions: {
+      rootDir: projectRoot.replace(/\\/g, "/"),
+    },
+    include: [],
+    exclude: [],
+  };
+
+  await writeFile(path.join(workDir, "tsconfig.json"), JSON.stringify(scratchConfig, null, 2), "utf8");
+}
+
 export async function bundleAgent(testSuitePaths: string[], keep: boolean = false): Promise<string> {
   if (testSuitePaths.length === 0) {
     throw new Error("bundleAgent requires at least one test suite path.");
@@ -101,6 +117,8 @@ export async function bundleAgent(testSuitePaths: string[], keep: boolean = fals
     await rm(entrypointPath, { force: true });
     await writeFile(entrypointPath, agentSource.replace(IMPORT_MARKER, importStatements), "utf8");
 
+    await prepareTypeCheckConfig(projectRoot, workDir);
+
     const outfilePath = path.join(workDir, AGENT_BUNDLE_FILENAME);
     const fridaCompile = getFridaCompileBin(projectRoot);
 
@@ -108,14 +126,13 @@ export async function bundleAgent(testSuitePaths: string[], keep: boolean = fals
 
     try {
       execFileSync(fridaCompile.path, args, {
-        cwd: projectRoot,
+        cwd: workDir,
         shell: process.platform === "win32",
-        encoding: "utf8",
+        stdio: "inherit",
       });
     } catch (err) {
-      const stderr = (err as { stderr?: Buffer | string }).stderr?.toString().trim();
       throw new Error(
-        `frida-compile failed for entrypoint "${entrypointPath}" with suites [${testSuitePaths.join(", ")}]: ${stderr || (err as Error).message}`,
+        `frida-compile failed for entrypoint "${entrypointPath}" with suites [${testSuitePaths.join(", ")}] (see compiler output above for details)`,
         { cause: err },
       );
     }
