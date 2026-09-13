@@ -63,6 +63,6 @@
     "typescript": "^7.0.2"
   },
   "allowScripts": {
-    "frida@17.17.0": true
+    "frida@17.18.0": true
   }
 }
