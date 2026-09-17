@@ -66,9 +66,11 @@ jobs:
 
             echo "Run tests"
             set +e
-            npm run test:android -- -o test-results.json | tee test-output-android.log
-            status=${PIPESTATUS[0]}
+            npm run test:android -- -o test-results.json > test-output-android.log 2>&1
+            status=$?
             set -e
+
+            cat test-output-android.log
 
             {
               echo "### Test host Android"
