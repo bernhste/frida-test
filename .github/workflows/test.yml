@@ -57,6 +57,7 @@ jobs:
             echo "Preparing scripts"
             chmod +x .github/scripts/android/prep-device.sh
             chmod +x .github/scripts/android/install-frida-server.sh
+            chmod +x .github/scripts/android/run-tests.sh
 
             echo "Starting adb as root"
             .github/scripts/android/prep-device.sh
@@ -65,21 +66,7 @@ jobs:
             .github/scripts/android/install-frida-server.sh
 
             echo "Run tests"
-            set +e
-            npm run test:android -- -o test-results.json > test-output-android.log 2>&1
-            status=$?
-            set -e
-
-            cat test-output-android.log
-
-            {
-              echo "### Test host Android"
-              echo '```'
-              cat test-output-android.log
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-
-            exit $status
+            .github/scripts/android/run-tests.sh
 
       - name: Upload test results
         if: always()
