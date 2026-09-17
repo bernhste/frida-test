@@ -65,11 +65,23 @@ jobs:
             .github/scripts/android/install-frida-server.sh
 
             echo "Run tests"
-            npm run test:android
+            set +e
+            npm run test:android -- -o test-results.json | tee test-output-android.log
+            status=${PIPESTATUS[0]}
+            set -e
+
+            {
+              echo "### Test host Android"
+              echo '```'
+              cat test-output-android.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            exit $status
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: test-results-android
-          path: test-results-android.json
+          path: test-results.json

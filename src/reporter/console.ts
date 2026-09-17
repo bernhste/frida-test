@@ -30,9 +30,9 @@ function printTestResult(node: TestResult, depth: number = 0): void {
 
 export function printTestSuiteResult(suite: TestSuiteResult): void {
   if (suite.status == "failed") {
-    logger.warn(`Test suite "${suite.name}" failed:`);
+    console.log(`❌ Test suite "${suite.name}" failed:`);
   } else if (suite.status == "passed") {
-    logger.success(`Test suite "${suite.name}" passed:`);
+    console.log(`✅ Test suite "${suite.name}" passed:`);
   }
   if (suite.testResult) {
     printTestResult(suite.testResult, 1);

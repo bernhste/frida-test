@@ -24,7 +24,7 @@ export function printSummary(runSummary: RunSummary): void {
   console.log(chalk.bold("Test Suites"));
   for (const suite of testSuitesResults) {
     const isPassed = suite.status === "passed";
-    console.log(`  ${isPassed ? chalk.green("✓") : chalk.red("✗")} ${suite.name}`);
+    console.log(`  ${isPassed ? "✅" : "❌"} ${suite.name}`);
 
     if (!isPassed && suite.testResult?.name) {
       for (const line of suite.testResult.name.split("\n")) {

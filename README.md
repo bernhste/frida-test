@@ -1,5 +1,7 @@
 # frida-test Documentation
 
+[![Test frida-test](https://github.com/bernhste/frida-test/actions/workflows/test.yml/badge.svg)](https://github.com/bernhste/frida-test/actions/workflows/test.yml)
+
 This is a small test framework which runs on the target. It is used to unit test Frida code running on actual devices. It was originally developed to test the Frida agent code used in [frooky](https://github.com/cpholguera/frooky).
 
 The following chapters explain how to write and run tests.
@@ -10,7 +12,7 @@ The following chapters explain how to write and run tests.
 npm install --save-dev frida-test
 ```
 
-After the installation, import the type `frida-test` into you project by adding the following configuration to the `tsconfig.json`:
+After the installation, import the type `frida-test` into your project by adding the following configuration to the `tsconfig.json`:
 
 ```json
 {
@@ -42,7 +44,7 @@ describe('Classloader', () => {
 
 Tests can be nested to any depth and can be synchronous or asynchronous.
 
-### Test discovery
+### Test Discovery
 
 The framework collects every file matching `*.test.ts` in the directories passed on the command line, recursively.
 
@@ -84,7 +86,7 @@ myProject/
 | `.not.<matcher>` | Inverts the assertion result |
 
 > [!NOTE]
-> `frida-test` test itself. So for examples for all Matches and more, have a look a the `*.test.ts` located in the [test folder](./tests/)
+> `frida-test` tests itself. So for examples of all matchers and more, have a look at the `*.test.ts` files located in the [test folder](./tests/).
 
 ### Setup and Teardown
 
@@ -169,7 +171,7 @@ frida-test -U -N org.owasp.mastestapp.MASTestApp-iOS ./tests/ios ./tests/shared
 frida-test -H 192.168.1.10:27042 --token secret -p 4926 ./tests/shared
 ```
 
-## Compile Agent
+## Compiling the Agent
 
 `frida-test` automatically bundles the test suites and compiles them together with the testing framework into a Frida agent.
 
