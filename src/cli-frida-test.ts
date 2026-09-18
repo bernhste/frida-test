@@ -3,11 +3,12 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { parseArgs } from "node:util";
 import { bundleAgent } from "./bundler.js";
 import { collectTestSuitePaths } from "./collector.js";
-import { resolveDevice, resolveTarget, type DeviceSelector, type TargetDef } from "./device.js";
+import { resolveDevice, type DeviceSelector } from "./device.js";
 import { logger } from "./logger.js";
 import { writeRunSummaryJson } from "./reporter/json.js";
 import { printSummary } from "./reporter/summary.js";
 import { TestRunner } from "./runner.js";
+import { resolveTarget, type TargetDef } from "./target.js";
 
 const usage = `
   Usage: frida-test [options] <src_path>...
@@ -29,7 +30,7 @@ const usage = `
     -o, --out <path>                Path of the output file for JSON reporter (default: disabled)
     -t, --timeout <s>               Abort the run after this many seconds (default: 600, 0 disables)
     -d, --delay <s>                 Start running the test suites after this many seconds (default: 0)
-    -k, --keep                      Keep the generated agent in .frida-test/agent.js
+    -k, --keep                      Keep the generated agent bundle in .frida-test-cache/
     -v, --verbose                   Enable verbose logging
     -h, --help                      Show this help message
 
@@ -120,7 +121,7 @@ async function main(): Promise<void> {
     deviceSelector = { id: values.device };
   } else if (values.usb) {
     deviceSelector = "usb";
-  } else if (values.host !== undefined || values.remote || hasRemoteParams) {
+  } else if (values.host !== undefined || hasRemoteParams) {
     const keepaliveInterval = values["keepalive-interval"] !== undefined ? parseKeepaliveInterval(values["keepalive-interval"]) : undefined;
 
     deviceSelector = {
@@ -130,6 +131,8 @@ async function main(): Promise<void> {
       ...(values.token && { token: values.token }),
       ...(keepaliveInterval !== undefined && { keepaliveInterval }),
     };
+  } else if (values.remote) {
+    deviceSelector = "remote";
   } else {
     deviceSelector = "local";
   }
@@ -202,7 +205,9 @@ async function main(): Promise<void> {
 
     let runSummary;
     try {
-      runSummary = await Promise.race([runner.runTests(), timeoutPromise]);
+      const testsPromise = runner.runTests();
+      testsPromise.catch(() => {});
+      runSummary = await Promise.race([testsPromise, timeoutPromise]);
     } finally {
       if (timerId) globalThis.clearTimeout(timerId);
     }

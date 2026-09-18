@@ -152,7 +152,10 @@ async function runTestSuiteNode(node: TestSuiteNode, verbose: boolean, parentHoo
         durationMs: 0,
         error: { message: `parent suite "${node.name}" failed before this test could run` },
       }));
-      const counts: Counts = { total: 1 + children.length, passed: 0, failed: 1 + children.length };
+      // Count each reported child once; fall back to counting the suite itself
+      // only when it has none, so an empty-but-broken suite isn't invisible.
+      const failedCount = Math.max(1, children.length);
+      const counts: Counts = { total: failedCount, passed: 0, failed: failedCount };
       const result: TestResult = {
         name: node.name,
         status: "failed",
@@ -177,7 +180,8 @@ async function runTestSuiteNode(node: TestSuiteNode, verbose: boolean, parentHoo
         error: { message: `parent suite "${node.name}" failed before this test could run` },
       }));
       await runTeardownHooks(hooks.afterAll, verbose);
-      const counts: Counts = { total: 1 + children.length, passed: 0, failed: 1 + children.length };
+      const failedCount = Math.max(1, children.length);
+      const counts: Counts = { total: failedCount, passed: 0, failed: failedCount };
       const result: TestResult = {
         name: node.name,
         status: "failed",

@@ -6,10 +6,10 @@ import { collectTestSuitePaths } from "./collector.js";
 import { logger } from "./logger.js";
 
 const usage = `
-  Usage: frida-test-compiler [options] <src_path>...
+  Usage: frida-test-compile [options] <src_path>...
 
   Options:
-    -o, --out <path>                Path of the output file for JSON reporter (default: disabled)
+    -o, --out <path>                Path of the output file for the compiled agent bundle (default: stdout)
     -h, --help                      Show this help message
 `;
 

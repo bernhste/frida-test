@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import type { RunSummary } from "../protocol.js";
+import { STATUS_SYMBOLS } from "./console.js";
 
 function formatDuration(ms: number): string {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
@@ -16,18 +17,18 @@ function formatCount(passed: number, failed: number, total: number): string {
 export function printSummary(runSummary: RunSummary): void {
   const { total, passed, failed, durationMs, testSuitesResults } = runSummary;
   const suitePassed = testSuitesResults.filter((s) => s.status === "passed").length;
-  const suiteFailed = testSuitesResults.length - suitePassed;
+  const suiteFailed = testSuitesResults.filter((s) => s.status === "failed").length;
 
   console.log();
   console.log("------------------------------------------------------------------------------");
   console.log();
   console.log(chalk.bold("Test Suites"));
   for (const suite of testSuitesResults) {
-    const isPassed = suite.status === "passed";
-    console.log(`  ${isPassed ? "✅" : "❌"} ${suite.name}`);
+    const symbol = STATUS_SYMBOLS[suite.status] || "?";
+    console.log(`  ${symbol} ${suite.name}`);
 
-    if (!isPassed && suite.testResult?.name) {
-      for (const line of suite.testResult.name.split("\n")) {
+    if (suite.status === "failed" && suite.testResult?.error?.message) {
+      for (const line of suite.testResult.error.message.split("\n")) {
         console.log(chalk.red(`      ${line}`));
       }
     }

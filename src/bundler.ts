@@ -10,27 +10,28 @@ const AGENT_ENTRYPOINT_FILENAME = "agentRuntime.ts";
 const AGENT_ENTRYPOINT_BASENAME = path.parse(AGENT_ENTRYPOINT_FILENAME).name;
 const AGENT_BUNDLE_FILENAME = `${AGENT_ENTRYPOINT_BASENAME}.bundle.js`;
 
-function getProjectRoot(): string {
-  const startDir = process.cwd();
+function findPackageRoot(startDir: string): string | undefined {
   let dir = startDir;
   while (true) {
     if (existsSync(path.join(dir, "package.json"))) return dir;
     const parent = path.dirname(dir);
-    if (parent === dir) return startDir;
+    if (parent === dir) return undefined;
     dir = parent;
   }
 }
 
+function getProjectRoot(): string {
+  const startDir = process.cwd();
+  return findPackageRoot(startDir) ?? startDir;
+}
+
 function getPackageRoot(): string {
-  let dir = path.dirname(fileURLToPath(import.meta.url));
-  while (true) {
-    if (existsSync(path.join(dir, "package.json"))) return dir;
-    const parent = path.dirname(dir);
-    if (parent === dir) {
-      throw new Error("Could not locate frida-test's own package.json.");
-    }
-    dir = parent;
+  const startDir = path.dirname(fileURLToPath(import.meta.url));
+  const root = findPackageRoot(startDir);
+  if (!root) {
+    throw new Error("Could not locate frida-test's own package.json.");
   }
+  return root;
 }
 
 function getAgentRuntimeSrcDir(): string {
@@ -114,7 +115,6 @@ export async function bundleAgent(testSuitePaths: string[], keep: boolean = fals
       })
       .join("\n");
 
-    await rm(entrypointPath, { force: true });
     await writeFile(entrypointPath, agentSource.replace(IMPORT_MARKER, importStatements), "utf8");
 
     await prepareTypeCheckConfig(projectRoot, workDir);
@@ -137,7 +137,7 @@ export async function bundleAgent(testSuitePaths: string[], keep: boolean = fals
       );
     }
 
-    logger.info(`Agent bundle sucessfully created and saved at ${outfilePath}.`);
+    logger.info(`Agent bundle successfully created and saved at ${outfilePath}.`);
 
     return await readFile(outfilePath, "utf8");
   } finally {

@@ -65,6 +65,17 @@ describe("Basic Matcher", () => {
         expect(new Set([1, 2])).toEqual(new Set([1, 2, 3]));
       }).toThrow();
     });
+    it("should not let one element in the expected Set satisfy two different elements in the actual Set", () => {
+      // Regression test: a naive "every element of A has some match in B" comparison can let a
+      // single element of B be reused to satisfy two distinct (but deep-equal-shaped) elements of
+      // A, wrongly reporting two structurally different Sets as equal.
+      expect(() => {
+        expect(new Set([{ x: 1 }, { x: 1 }])).toEqual(new Set([{ x: 1 }, { x: 2 }]));
+      }).toThrow();
+    });
+    it("should still pass when a Set genuinely has repeated deep-equal-shaped elements", () => {
+      expect(new Set([{ x: 1 }, { x: 1 }])).toEqual(new Set([{ x: 1 }, { x: 1 }]));
+    });
   });
 
   describe("toBeTruthy", () => {

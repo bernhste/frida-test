@@ -55,10 +55,15 @@ const deepEqual = (a: unknown, b: unknown, seen: Array<[unknown, unknown]> = [])
   }
 
   if (a instanceof Set) {
-    const bs = [...(b as Set<unknown>)];
-    if (a.size !== bs.length) return false;
+    // Match each element of `a` against a distinct, not-yet-consumed element of
+    // `b` (rather than `some`), so a value appearing twice in `a` can't both be
+    // satisfied by the same single matching element in `b`.
+    const remaining = [...(b as Set<unknown>)];
+    if (a.size !== remaining.length) return false;
     for (const val of a) {
-      if (!bs.some((other) => deepEqual(val, other, nextSeen))) return false;
+      const index = remaining.findIndex((other) => deepEqual(val, other, nextSeen));
+      if (index === -1) return false;
+      remaining.splice(index, 1);
     }
     return true;
   }
@@ -140,6 +145,8 @@ function createMatcher<T>(actual: T, negated = false): Matcher<T> {
       }
 
       if (!threw && result != null && typeof (result as PromiseLike<unknown>).then === "function") {
+        // Avoid leaving the caller's promise unhandled while we redirect them to toReject().
+        void Promise.resolve(result as PromiseLike<unknown>).catch(() => {});
         throw new Error("toThrow() received a function returning a Promise; use await expect(fn).toReject(...) instead");
       }
 
@@ -228,7 +235,7 @@ export function spyOn<T extends object, K extends keyof T>(target: T, key: K): S
       return spy;
     },
     mockImplementation(fn: (...args: unknown[]) => unknown) {
-      impl = fn;
+      impl = fn.bind(target);
       hasReturnValue = false;
       return spy;
     },

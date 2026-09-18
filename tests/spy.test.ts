@@ -32,6 +32,22 @@ describe("spyOn", () => {
     spy.restore();
   });
 
+  it("should preserve `this` binding to the spied-on object inside a custom mockImplementation", () => {
+    // Regression test: a mock implementation that relies on `this` (a very normal pattern when
+    // spying on an object's own method) must see the same `this` the real method would have had.
+    const target = {
+      state: "original-state",
+      getState(): string {
+        return this.state;
+      },
+    };
+    const spy = spyOn(target, "getState").mockImplementation(function (this: typeof target): string {
+      return this.state;
+    });
+    expect(target.getState()).toBe("original-state");
+    spy.restore();
+  });
+
   it("should reject spying on a non-function property", () => {
     const target = { name: "agent" };
     expect(() => {

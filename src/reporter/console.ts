@@ -1,7 +1,7 @@
 import { logger } from "../logger.js";
 import { type TestResult, type TestStatus, type TestSuiteResult } from "../protocol.js";
 
-const STATUS_SYMBOLS: Record<TestStatus, string> = {
+export const STATUS_SYMBOLS: Record<TestStatus, string> = {
   passed: "✅",
   failed: "❌",
   skipped: "➖",
@@ -29,14 +29,12 @@ function printTestResult(node: TestResult, depth: number = 0): void {
 }
 
 export function printTestSuiteResult(suite: TestSuiteResult): void {
-  if (suite.status == "failed") {
-    console.log(`❌ Test suite "${suite.name}" failed:`);
-  } else if (suite.status == "passed") {
-    console.log(`✅ Test suite "${suite.name}" passed:`);
-  }
+  const symbol = STATUS_SYMBOLS[suite.status] || "?";
+  console.log(`${symbol} Test suite "${suite.name}" ${suite.status}:`);
+
   if (suite.testResult) {
     printTestResult(suite.testResult, 1);
-  } else {
-    logger.warn(`No results for test suite  "${suite.name}".`);
+  } else if (suite.status !== "skipped") {
+    logger.warn(`No results for test suite "${suite.name}".`);
   }
 }

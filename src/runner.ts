@@ -38,13 +38,13 @@ export class TestRunner {
       });
       await script.load();
 
-      this.session = session;
-      this.script = script;
-      this.initialized = true;
-
       if (this.target.wasSpawned) {
         await this.device.resume(this.target.pid);
       }
+
+      this.session = session;
+      this.script = script;
+      this.initialized = true;
     } catch (error) {
       await session.detach().catch(() => {});
       throw error;
@@ -63,14 +63,23 @@ export class TestRunner {
   }
 
   async dispose(): Promise<void> {
-    try {
-      await this.script?.unload();
-    } finally {
-      await this.session?.detach();
-      this.script = undefined;
-      this.session = undefined;
-      this.initialized = false;
+    if (this.script) {
+      try {
+        await this.script.unload();
+      } catch (error) {
+        logger.warn(`Failed to unload script: ${(error as Error).message}`);
+      }
     }
+    if (this.session) {
+      try {
+        await this.session.detach();
+      } catch (error) {
+        logger.warn(`Failed to detach session: ${(error as Error).message}`);
+      }
+    }
+    this.script = undefined;
+    this.session = undefined;
+    this.initialized = false;
   }
 
   private onMessage(message: Message, _data: Buffer | null): void {

@@ -1,4 +1,4 @@
-import type { Device } from "frida";
+import type { Device, Process } from "frida";
 
 export interface Target {
   pid: number;
@@ -37,12 +37,16 @@ export async function resolveTarget(device: Device, targetDef: TargetDef): Promi
     const processes = await device.enumerateProcesses();
     const needle = targetName.toLowerCase();
 
-    const tiers = [
-      processes.filter((p) => p.name === targetName),
-      processes.filter((p) => p.name.toLowerCase() === needle),
-      processes.filter((p) => p.name.toLowerCase().includes(needle)),
+    const tierFilters: Array<(p: Process) => boolean> = [
+      (p) => p.name === targetName,
+      (p) => p.name.toLowerCase() === needle,
+      (p) => p.name.toLowerCase().includes(needle),
     ];
-    const matches = tiers.find((tier) => tier.length > 0) ?? [];
+    let matches: Process[] = [];
+    for (const matchesTier of tierFilters) {
+      matches = processes.filter(matchesTier);
+      if (matches.length > 0) break;
+    }
 
     if (matches.length === 0) {
       throw new Error(`No running process matching '${targetName}' was found.`);
@@ -61,7 +65,7 @@ export async function resolveTarget(device: Device, targetDef: TargetDef): Promi
   const apps = await device.enumerateApplications();
   const matchedApp = apps.find((a) => a.identifier === identifier);
 
-  if (!matchedApp || !matchedApp.pid || matchedApp.pid === 0) {
+  if (!matchedApp || !matchedApp.pid) {
     throw new Error(`Application '${identifier}' is not currently running.`);
   }
 
