@@ -1,5 +1,6 @@
-type Matcher<T> = import("./matchers.js").Matcher<T>;
-type Spy = import("./matchers.js").Spy;
+type Matchers<T> = import("./modifiers.js").Matchers<T>;
+type Mock = import("./mock.js").Mock;
+type AnyFn = import("./mock.js").AnyFn;
 type TestFn = import("./registry.js").TestFn;
 type HookFn = import("./registry.js").HookFn;
 
@@ -10,5 +11,6 @@ declare function beforeEach(fn: HookFn): void;
 declare function afterEach(fn: HookFn): void;
 declare function beforeAll(fn: HookFn): void;
 declare function afterAll(fn: HookFn): void;
-declare function expect<T>(actual: T): Matcher<T>;
-declare function spyOn<T extends object, K extends keyof T>(target: T, key: K): Spy;
+declare function expect<T>(actual: T): Matchers<T>;
+declare function spyOn<T extends object, K extends keyof T>(target: T, key: K): Mock;
+declare function fn(implementation?: AnyFn): Mock;

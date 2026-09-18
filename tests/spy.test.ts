@@ -5,14 +5,14 @@ describe("spyOn", () => {
     const spy = spyOn(target, "double");
     expect(target.double(4)).toBe(8);
     expect(spy).toHaveBeenCalledWith(4);
-    spy.restore();
+    spy.mockRestore();
   });
 
   it("should restore the exact original function reference", () => {
     const original = (n: number) => n * 2;
     const target = { double: original };
     const spy = spyOn(target, "double");
-    spy.restore();
+    spy.mockRestore();
     expect(target.double).toBe(original);
   });
 
@@ -21,7 +21,7 @@ describe("spyOn", () => {
     const spy = spyOn(target, "readPointer").mockReturnValue(0x1234);
     expect(target.readPointer()).toBe(0x1234);
     expect(spy).toHaveBeenCalled();
-    spy.restore();
+    spy.mockRestore();
   });
 
   it("should replace the implementation with mockImplementation", () => {
@@ -29,7 +29,7 @@ describe("spyOn", () => {
     const spy = spyOn(target, "add").mockImplementation((...args: unknown[]) => (args[0] as number) + ((args[1] as number) + 1));
     expect(target.add(2, 2)).toBe(5);
     expect(spy).toHaveBeenCalledWith(2, 2);
-    spy.restore();
+    spy.mockRestore();
   });
 
   it("should preserve `this` binding to the spied-on object inside a custom mockImplementation", () => {
@@ -45,7 +45,24 @@ describe("spyOn", () => {
       return this.state;
     });
     expect(target.getState()).toBe("original-state");
-    spy.restore();
+    spy.mockRestore();
+  });
+
+  it("should be idempotent when called more than once", () => {
+    const original = (n: number) => n * 2;
+    const target = { double: original };
+    const spy = spyOn(target, "double");
+    spy.mockRestore();
+    spy.mockRestore();
+    expect(target.double).toBe(original);
+  });
+
+  it("should clear recorded calls when restored", () => {
+    const target = { ping: () => undefined };
+    const spy = spyOn(target, "ping");
+    target.ping();
+    spy.mockRestore();
+    expect(spy.mock.calls.length).toBe(0);
   });
 
   it("should reject spying on a non-function property", () => {
@@ -67,7 +84,7 @@ describe("spyOn", () => {
     const spy = spyOn(instance, "greet");
     expect(Object.prototype.hasOwnProperty.call(instance, "greet")).toBeTruthy();
 
-    spy.restore();
+    spy.mockRestore();
     expect(Object.prototype.hasOwnProperty.call(instance, "greet")).toBeFalsy();
     expect(instance.greet()).toBe("base");
   });
@@ -78,7 +95,7 @@ describe("spyOn", () => {
       const spy = spyOn(target, "ping");
       target.ping();
       expect(spy).toHaveBeenCalled();
-      spy.restore();
+      spy.mockRestore();
     });
     it("should fail when the spy was never invoked", () => {
       const target = { ping: () => undefined };
@@ -86,7 +103,7 @@ describe("spyOn", () => {
       expect(() => {
         expect(spy).toHaveBeenCalled();
       }).toThrow();
-      spy.restore();
+      spy.mockRestore();
     });
   });
 
@@ -96,7 +113,7 @@ describe("spyOn", () => {
       const spy = spyOn(target, "greet");
       target.greet("frida");
       expect(spy).toHaveBeenCalledWith("frida");
-      spy.restore();
+      spy.mockRestore();
     });
     it("should support multiple positional arguments", () => {
       const target = { add: (a: number, b: number) => a + b };
@@ -106,14 +123,14 @@ describe("spyOn", () => {
       expect(() => {
         expect(spy).toHaveBeenCalledWith(2, 4);
       }).toThrow();
-      spy.restore();
+      spy.mockRestore();
     });
     it("should match arguments using deep equality", () => {
       const target = { save: (record: { id: number }) => record.id };
       const spy = spyOn(target, "save");
       target.save({ id: 42 });
       expect(spy).toHaveBeenCalledWith({ id: 42 });
-      spy.restore();
+      spy.mockRestore();
     });
   });
 });

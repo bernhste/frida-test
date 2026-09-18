@@ -228,7 +228,7 @@ describe("Basic Matcher", () => {
       const target = { ping: () => undefined };
       const spy = spyOn(target, "ping");
       expect(spy).not.toHaveBeenCalled();
-      spy.restore();
+      spy.mockRestore();
     });
     it("should fail when the underlying condition actually holds", () => {
       expect(() => {

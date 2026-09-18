@@ -1,7 +1,9 @@
+import { isMock, type Mock } from "./mock.js";
+
 export type Containable<T> = T extends readonly (infer U)[] ? U : T extends string ? string : never;
 export type Numeric<T> = T extends number ? number : never;
 
-export interface Matcher<T> {
+export interface Assertions<T> {
   toBe(expected: T): void;
   toEqual(expected: T): void;
   toBeTruthy(): void;
@@ -13,18 +15,11 @@ export interface Matcher<T> {
   toBeLessThan(expected: Numeric<T>): void;
   toContain(expected: Containable<T>): void;
   toThrow(errorMatch?: string | Error): void;
-  toResolve(valueMatch?: unknown): Promise<void>;
-  toReject(errorMatch?: string | Error): Promise<void>;
   toHaveBeenCalled(): void;
+  toHaveBeenCalledTimes(expected: number): void;
   toHaveBeenCalledWith(...expected: unknown[]): void;
-  readonly not: Matcher<T>;
-}
-
-export interface Spy {
-  readonly calls: readonly unknown[][];
-  restore(): void;
-  mockReturnValue(value: unknown): Spy;
-  mockImplementation(fn: (...args: unknown[]) => unknown): Spy;
+  toHaveBeenLastCalledWith(...expected: unknown[]): void;
+  toHaveBeenNthCalledWith(n: number, ...expected: unknown[]): void;
 }
 
 const assert = (condition: boolean, message: string): void => {
@@ -76,30 +71,31 @@ const deepEqual = (a: unknown, b: unknown, seen: Array<[unknown, unknown]> = [])
   return keysA.every((k) => deepEqual(ra[k], rb[k], nextSeen));
 };
 
-const isSpy = (value: unknown): value is Spy => typeof value === "object" && value !== null && Array.isArray((value as Spy).calls);
-
 function assertIsNumber(value: unknown, label: string): asserts value is number {
   assert(typeof value === "number", `Expected ${label} to be a number`);
 }
 
-function createMatcher<T>(actual: T, negated = false): Matcher<T> {
+// Shared with modifiers.ts so `.rejects.toThrow(errorMatch)` matches an already-caught rejection
+// reason using the exact same rule as the synchronous `toThrow(errorMatch)`.
+export function matchesThrown(caught: unknown, errorMatch: string | Error): boolean {
+  if (typeof errorMatch === "string") {
+    const message = caught instanceof Error ? caught.message : String(caught);
+    return message.includes(errorMatch);
+  }
+  return caught instanceof Error && caught instanceof errorMatch.constructor && caught.message === errorMatch.message;
+}
+
+export function describeCaught(caught: unknown): string {
+  return caught instanceof Error ? `${caught.constructor.name}: "${caught.message}"` : JSON.stringify(caught);
+}
+
+function describeErrorMatch(errorMatch: string | Error): string {
+  return typeof errorMatch === "string" ? `a message including "${errorMatch}"` : `${errorMatch.constructor.name}: "${errorMatch.message}"`;
+}
+
+export function createMatcher<T>(actual: T, negated = false): Assertions<T> {
   const check = (condition: boolean, message: string): void => assert(negated ? !condition : condition, message);
   const phrase = negated ? "not to" : "to";
-
-  const describeCaught = (caught: unknown): string =>
-    caught instanceof Error ? `${caught.constructor.name}: "${caught.message}"` : JSON.stringify(caught);
-
-  const checkThrown = (caught: unknown, errorMatch: string | Error): void => {
-    if (typeof errorMatch === "string") {
-      const message = caught instanceof Error ? caught.message : String(caught);
-      assert(message.includes(errorMatch), `Expected message to include "${errorMatch}" but got "${message}"`);
-    } else {
-      assert(
-        caught instanceof Error && caught instanceof errorMatch.constructor && caught.message === errorMatch.message,
-        `Expected ${errorMatch.constructor.name}: "${errorMatch.message}" but got ${describeCaught(caught)}`,
-      );
-    }
-  };
 
   return {
     toBe: (expected) => check(Object.is(actual, expected), `Expected ${String(actual)} ${phrase} be ${String(expected)}`),
@@ -145,106 +141,63 @@ function createMatcher<T>(actual: T, negated = false): Matcher<T> {
       }
 
       if (!threw && result != null && typeof (result as PromiseLike<unknown>).then === "function") {
-        // Avoid leaving the caller's promise unhandled while we redirect them to toReject().
+        // Avoid leaving the caller's promise unhandled while we redirect them to .rejects.
         void Promise.resolve(result as PromiseLike<unknown>).catch(() => {});
-        throw new Error("toThrow() received a function returning a Promise; use await expect(fn).toReject(...) instead");
+        throw new Error("toThrow() received a function returning a Promise; use await expect(fn()).rejects.toThrow(...) instead");
       }
 
-      check(threw, `Expected function ${phrase} throw`);
-      if (negated || errorMatch === undefined) return;
-      checkThrown(caught, errorMatch);
-    },
-
-    toResolve: async (expected) => {
-      assert(typeof actual === "function", "Expected a function returning a promise");
-      let caught: unknown;
-      let resolved = false;
-      try {
-        caught = await (actual as () => Promise<unknown>)();
-        resolved = true;
-      } catch (e) {
-        // promise rejected
+      if (errorMatch === undefined) {
+        check(threw, `Expected function ${phrase} throw`);
+        return;
       }
-      check(resolved, `Expected promise ${phrase} resolve`);
-      if (negated || expected === undefined) return;
-      assert(deepEqual(caught, expected), `Expected ${JSON.stringify(caught)} to equal ${JSON.stringify(expected)}`);
-    },
-
-    toReject: async (errorMatch) => {
-      assert(typeof actual === "function", "Expected a function returning a promise");
-      let caught: unknown;
-      let rejected = false;
-      try {
-        await (actual as () => Promise<unknown>)();
-      } catch (e) {
-        rejected = true;
-        caught = e;
-      }
-      check(rejected, `Expected promise ${phrase} reject`);
-      if (negated || errorMatch === undefined) return;
-      checkThrown(caught, errorMatch);
+      const matches = threw && matchesThrown(caught, errorMatch);
+      check(
+        matches,
+        threw
+          ? `Expected function ${phrase} throw ${describeErrorMatch(errorMatch)} but got ${describeCaught(caught)}`
+          : `Expected function ${phrase} throw`,
+      );
     },
 
     toHaveBeenCalled: () => {
-      assert(isSpy(actual), "Expected a spy created with spyOn()");
-      check((actual as Spy).calls.length > 0, `Expected spy ${phrase} have been called`);
+      assert(isMock(actual), "Expected a mock function created with fn() or spyOn()");
+      check((actual as Mock).mock.calls.length > 0, `Expected mock ${phrase} have been called`);
+    },
+
+    toHaveBeenCalledTimes: (expected: number) => {
+      assert(isMock(actual), "Expected a mock function created with fn() or spyOn()");
+      const count = (actual as Mock).mock.calls.length;
+      check(count === expected, `Expected mock ${phrase} have been called ${expected} time(s) but it was called ${count} time(s)`);
     },
 
     toHaveBeenCalledWith: (...expected: unknown[]) => {
-      assert(isSpy(actual), "Expected a spy created with spyOn()");
-      const calls = (actual as Spy).calls;
+      assert(isMock(actual), "Expected a mock function created with fn() or spyOn()");
+      const calls = (actual as Mock).mock.calls;
       const match = calls.some((args) => deepEqual(args, expected));
-      check(match, `Expected spy ${phrase} have been called with ${JSON.stringify(expected)} but got ${JSON.stringify(calls)}`);
+      check(match, `Expected mock ${phrase} have been called with ${JSON.stringify(expected)} but got ${JSON.stringify(calls)}`);
     },
 
-    get not(): Matcher<T> {
-      return createMatcher(actual, !negated);
+    toHaveBeenLastCalledWith: (...expected: unknown[]) => {
+      assert(isMock(actual), "Expected a mock function created with fn() or spyOn()");
+      const calls = (actual as Mock).mock.calls;
+      const last = calls[calls.length - 1];
+      const match = calls.length > 0 && deepEqual(last, expected);
+      check(
+        match,
+        `Expected mock ${phrase} have last been called with ${JSON.stringify(expected)} but got ${calls.length > 0 ? JSON.stringify(last) : "no calls"}`,
+      );
     },
-  };
-}
 
-export function expect<T>(actual: T): Matcher<T> {
-  return createMatcher(actual);
-}
-
-export function spyOn<T extends object, K extends keyof T>(target: T, key: K): Spy {
-  const original = target[key];
-  assert(typeof original === "function", `${String(key)} is not a function`);
-
-  const descriptor = Object.getOwnPropertyDescriptor(target, key); // fix: capture descriptor for faithful restore
-  const calls: unknown[][] = [];
-  let impl: (...args: unknown[]) => unknown = (original as (...a: unknown[]) => unknown).bind(target);
-  let returnValue: unknown;
-  let hasReturnValue = false;
-  let restored = false;
-
-  const spy: Spy = {
-    calls,
-    restore: () => {
-      if (restored) return;
-      restored = true;
-      if (descriptor) {
-        Object.defineProperty(target, key, descriptor);
-      } else {
-        Reflect.deleteProperty(target, key);
-      }
-    },
-    mockReturnValue(value: unknown) {
-      hasReturnValue = true;
-      returnValue = value;
-      return spy;
-    },
-    mockImplementation(fn: (...args: unknown[]) => unknown) {
-      impl = fn.bind(target);
-      hasReturnValue = false;
-      return spy;
+    toHaveBeenNthCalledWith: (n: number, ...expected: unknown[]) => {
+      assert(isMock(actual), "Expected a mock function created with fn() or spyOn()");
+      assert(Number.isInteger(n) && n >= 1, "Expected the call index to be a positive integer");
+      const calls = (actual as Mock).mock.calls;
+      const call = calls[n - 1];
+      const match = call !== undefined && deepEqual(call, expected);
+      check(
+        match,
+        `Expected mock ${phrase} have been called on call ${n} with ${JSON.stringify(expected)} but got ${call !== undefined ? JSON.stringify(call) : "no such call"}`,
+      );
     },
   };
-
-  target[key] = ((...args: unknown[]) => {
-    calls.push(args);
-    return hasReturnValue ? returnValue : impl(...args);
-  }) as T[K];
-
-  return spy;
 }

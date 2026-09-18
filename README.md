@@ -65,7 +65,7 @@ myProject/
 
 ## Matchers
 
-`expect(actualValue)` returns a `Matcher` which we can use to test for the expected value. Use the following functions to do that:
+`expect(actualValue)` returns a `Matchers` object which we can use to test for the expected value. Use the following functions to do that:
 
 | Matcher | Description |
 | --- | --- |
@@ -80,13 +80,72 @@ myProject/
 | `.toBeLessThan(value)` | Numeric value is less than `value` |
 | `.toContain(value)` | Value (array, string, etc.) contains `value` |
 | `.toThrow(errorMatch)` | Exception thrown; optionally matches a string message or `Error` instance |
-| `.toReject(errorMatch)` | Returned promise rejects; optionally matches a string message or `Error` instance (must be `await`ed) |
-| `.toHaveBeenCalled()` | Spy target function was called at least once |
-| `.toHaveBeenCalledWith(...expected)` | Spy target function was called with expected arguments |
-| `.not.<matcher>` | Inverts the assertion result |
+| `.toHaveBeenCalled()` | Mock/spy was called at least once |
+| `.toHaveBeenCalledTimes(count)` | Mock/spy was called exactly `count` times |
+| `.toHaveBeenCalledWith(...expected)` | Mock/spy was called (at any point) with the expected arguments |
+| `.toHaveBeenLastCalledWith(...expected)` | Mock/spy's most recent call had the expected arguments |
+| `.toHaveBeenNthCalledWith(n, ...expected)` | Mock/spy's `n`th call (1-indexed) had the expected arguments |
 
 > [!NOTE]
 > `frida-test` tests itself. So for examples of all matchers and more, have a look at the `*.test.ts` files located in the [test folder](./tests/).
+
+### Modifiers
+
+Like [Jest's `expect` modifiers](https://jestjs.io/docs/expect#modifiers), a matcher can be prefixed with one of:
+
+| Modifier | Description |
+| --- | --- |
+| `.not` | Inverts the assertion result, e.g. `expect(2 + 2).not.toBe(5)` |
+| `.resolves` | Unwraps a resolved promise so a matcher applies to its value; the assertion must be `await`ed |
+| `.rejects` | Unwraps a rejected promise so a matcher applies to its reason; the assertion must be `await`ed |
+
+```typescript
+await expect(fetchUser(1)).resolves.toEqual({ id: 1, name: 'Ada' });
+await expect(fetchUser(-1)).rejects.toThrow('not found');
+
+// modifiers compose:
+await expect(fetchUser(1)).resolves.not.toBeNull();
+```
+
+## Mocking
+
+`frida-test` mocks and spies follow the same API shape as Jest's mock functions.
+
+- `fn(implementation?)`: creates a standalone mock function, optionally backed by `implementation`.
+- `spyOn(object, methodName)`: replaces `object[methodName]` with a mock that calls through to the original method by default, and can be restored later.
+
+Both return the same `Mock` type:
+
+```typescript
+const mock = fn((a: number, b: number) => a + b);
+mock(1, 2);
+
+expect(mock).toHaveBeenCalledWith(1, 2);
+mock.mock.calls;       // [[1, 2]]
+mock.mock.results;     // [{ type: "return", value: 3 }]
+
+mock.mockReturnValue(42);       // set a default return value
+mock.mockReturnValueOnce(99);   // ...for just the next call
+mock.mockResolvedValue(value);  // wraps value in Promise.resolve()
+mock.mockRejectedValue(error);  // wraps error in Promise.reject()
+mock.mockImplementation(fn);    // replace the implementation
+mock.mockImplementationOnce(fn); // ...for just the next call
+
+mock.mockClear();   // reset calls/results, keep the implementation
+mock.mockReset();   // reset calls/results and drop the implementation
+mock.mockRestore(); // reset like mockReset(); for spyOn(), also restores the original method
+```
+
+```typescript
+describe('Logger', () => {
+  it('should call the underlying console method', () => {
+    const spy = spyOn(console, 'log').mockImplementation(() => undefined);
+    logMessage('hello');
+    expect(spy).toHaveBeenCalledWith('hello');
+    spy.mockRestore();
+  });
+});
+```
 
 ### Setup and Teardown
 

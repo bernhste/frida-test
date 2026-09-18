@@ -8,7 +8,7 @@ describe("Suite isolation: consumer A", () => {
       await Promise.resolve();
     }
     expect(spy).not.toHaveBeenCalled();
-    spy.restore();
+    spy.mockRestore();
   });
 });
 
@@ -17,7 +17,7 @@ describe("Suite isolation: consumer B", () => {
     for (let i = 0; i < 200; i++) {
       const spy = spyOn(sharedTarget, "warn");
       sharedTarget.warn("noise");
-      spy.restore();
+      spy.mockRestore();
       await Promise.resolve();
     }
   });

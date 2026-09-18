@@ -62,12 +62,12 @@ describe("Exception", () => {
         expect(async () => {
           throw new Error("boom");
         }).toThrow();
-      }).toThrow("toReject");
+      }).toThrow(".rejects");
     });
 
-    it("should not leave a rejected promise-like return value unhandled while redirecting to toReject", async () => {
+    it("should not leave a rejected promise-like return value unhandled while redirecting to .rejects", async () => {
       // Regression test: toThrow() detects a Promise-returning function and throws guidance
-      // toward toReject() instead, but must not leave the original rejection dangling with no
+      // toward .rejects instead, but must not leave the original rejection dangling with no
       // handler attached -- that would surface as an unrelated unhandled-rejection failure.
       let thenWasCalled = false;
       const rejectingThenable = {
@@ -79,7 +79,7 @@ describe("Exception", () => {
 
       expect(() => {
         expect(() => rejectingThenable).toThrow();
-      }).toThrow("toReject");
+      }).toThrow(".rejects");
 
       // Let the microtask queue run so Promise.resolve(rejectingThenable) has a chance to adopt it.
       await Promise.resolve();
