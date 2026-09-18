@@ -27,11 +27,37 @@ describe("Exception", () => {
       }).toThrow();
     });
 
-    it("should reject when error type does not match", () => {
+    it("should match an Error instance argument by message only, regardless of the thrown error's type", () => {
+      expect(() => {
+        throw new Error("boom");
+      }).toThrow(new TypeError("boom"));
+    });
+
+    it("should match a thrown error's message against a regular expression", () => {
+      expect(() => {
+        throw new Error("zapp boom zoink");
+      }).toThrow(/^zapp/);
+    });
+
+    it("should reject when the message does not match the regular expression", () => {
+      expect(() => {
+        expect(() => {
+          throw new Error("cholula");
+        }).toThrow(/chipotle/);
+      }).toThrow();
+    });
+
+    it("should match when the thrown error is an instance of the given class", () => {
+      expect(() => {
+        throw new TypeError("boom");
+      }).toThrow(TypeError);
+    });
+
+    it("should reject when the thrown error is not an instance of the given class", () => {
       expect(() => {
         expect(() => {
           throw new Error("boom");
-        }).toThrow(new TypeError("boom"));
+        }).toThrow(TypeError);
       }).toThrow();
     });
 

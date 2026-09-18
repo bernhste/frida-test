@@ -199,11 +199,18 @@ describe("Basic Matcher", () => {
     it("should pass when an array contains the expected item", () => {
       expect([1, 2, 3]).toContain(2);
     });
-    it("should pass using deep equality for object items", () => {
-      expect([{ a: 1 }, { b: 2 }]).toContain({ a: 1 });
+    it("should use strict equality, not deep equality, for object items", () => {
+      // Matches Jest: toContain checks array items with ===; a structurally-equal but
+      // distinct object does not count. toContainEqual below is the deep-equality version.
+      expect(() => {
+        expect([{ a: 1 }, { b: 2 }]).toContain({ a: 1 });
+      }).toThrow();
     });
     it("should pass when a string contains the expected substring", () => {
       expect("hello world").toContain("world");
+    });
+    it("should pass when a Set contains the expected item", () => {
+      expect(new Set([1, 2, 3])).toContain(2);
     });
     it("should fail when the item is absent", () => {
       expect(() => {
@@ -211,6 +218,17 @@ describe("Basic Matcher", () => {
       }).toThrow();
       expect(() => {
         expect("hello world").toContain("bye");
+      }).toThrow();
+    });
+  });
+
+  describe("toContainEqual", () => {
+    it("should pass using deep equality for object items", () => {
+      expect([{ a: 1 }, { b: 2 }]).toContainEqual({ a: 1 });
+    });
+    it("should fail when no item deeply equals the expected value", () => {
+      expect(() => {
+        expect([{ a: 1 }, { b: 2 }]).toContainEqual({ a: 2 });
       }).toThrow();
     });
   });
@@ -226,7 +244,7 @@ describe("Basic Matcher", () => {
     });
     it("should invert toHaveBeenCalled", () => {
       const target = { ping: () => undefined };
-      const spy = spyOn(target, "ping");
+      const spy = fridaTest.spyOn(target, "ping");
       expect(spy).not.toHaveBeenCalled();
       spy.mockRestore();
     });

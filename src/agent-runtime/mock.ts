@@ -35,12 +35,8 @@ export interface Mock {
   getMockName(): string;
 }
 
-export const isMock = (value: unknown): value is Mock =>
-  typeof value === "function" && Array.isArray((value as Partial<Mock>).mock?.calls);
+export const isMock = (value: unknown): value is Mock => typeof value === "function" && Array.isArray((value as Partial<Mock>).mock?.calls);
 
-// Shared by fn() and spyOn() so both produce the same jest-shaped Mock. `defaultImplementation`
-// is what a call falls through to once the once-queue is empty and no persistent implementation
-// has been installed (the original method for spyOn(), the initializer for fn(), or nothing).
 export function createMockFunction(defaultImplementation: AnyFn | undefined, name: string): Mock {
   const calls: unknown[][] = [];
   const results: MockResult[] = [];
@@ -50,7 +46,7 @@ export function createMockFunction(defaultImplementation: AnyFn | undefined, nam
   let persistentImplementation: AnyFn | undefined = defaultImplementation;
   let mockedName = name;
 
-  function mockFn(this: unknown, ...args: unknown[]): unknown {
+  function invoke(this: unknown, ...args: unknown[]): unknown {
     calls.push(args);
     contexts.push(this);
     if (new.target !== undefined) instances.push(this);
@@ -66,7 +62,7 @@ export function createMockFunction(defaultImplementation: AnyFn | undefined, nam
     }
   }
 
-  const mock = mockFn as unknown as Mock;
+  const mock = invoke as unknown as Mock;
 
   Object.defineProperty(mock, "mock", {
     enumerable: true,
@@ -89,8 +85,6 @@ export function createMockFunction(defaultImplementation: AnyFn | undefined, nam
     return mock;
   };
 
-  // Matches jest: mockReset() also drops any installed implementation (including the one `fn()`
-  // was created with), so a reset mock falls back to returning undefined, not its original behavior.
   mock.mockReset = (): Mock => {
     mock.mockClear();
     onceQueue.length = 0;
@@ -98,8 +92,6 @@ export function createMockFunction(defaultImplementation: AnyFn | undefined, nam
     return mock;
   };
 
-  // Default for plain fn() mocks: jest only restores the real original for spyOn(), so here
-  // mockRestore() is just mockReset(). spyOn() overrides this to also undo the property patch.
   mock.mockRestore = (): void => {
     mock.mockReset();
   };

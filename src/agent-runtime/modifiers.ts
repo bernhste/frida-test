@@ -1,4 +1,4 @@
-import { createMatcher, describeCaught, matchesThrown, type Assertions } from "./matchers.js";
+import { createMatcher, describeCaught, matchesThrown, type Assertions, type ErrorMatch } from "./matchers.js";
 
 export interface Matchers<T> extends Assertions<T> {
   readonly not: Matchers<T>;
@@ -26,8 +26,15 @@ async function settle(awaited: unknown): Promise<Settled> {
   }
 }
 
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return (typeof value === "object" || typeof value === "function") && value !== null && typeof (value as PromiseLike<unknown>).then === "function";
+}
+
 function createAsyncMatcher<T>(awaited: unknown, mode: "resolves" | "rejects", negated: boolean): AsyncMatcher<T> {
   async function invoke(method: SyncMethodName, args: unknown[]): Promise<void> {
+    if (!isPromiseLike(awaited)) {
+      throw new Error(`Expected a Promise for .${mode} but received ${describeCaught(awaited)}`);
+    }
     const result = await settle(awaited);
 
     if (mode === "resolves") {
@@ -45,7 +52,7 @@ function createAsyncMatcher<T>(awaited: unknown, mode: "resolves" | "rejects", n
     }
 
     if (method === "toThrow") {
-      const [errorMatch] = args as [string | Error | undefined];
+      const [errorMatch] = args as [ErrorMatch | undefined];
       const matches = errorMatch === undefined || matchesThrown(result.value, errorMatch);
       const passed = negated ? !matches : matches;
       if (!passed) {

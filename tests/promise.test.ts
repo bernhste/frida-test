@@ -24,6 +24,10 @@ describe("Promise modifiers", () => {
     it("should support .not", async () => {
       await expect(new Promise((resolve) => setTimeout(() => resolve(42), 10))).resolves.not.toBe(43);
     });
+
+    it("should fail clearly when used on a value that is not a Promise", async () => {
+      await expect(expect(42).resolves.toBe(42)).rejects.toThrow();
+    });
   });
 
   describe("rejects", () => {
@@ -53,6 +57,10 @@ describe("Promise modifiers", () => {
 
     it("should support .not", async () => {
       await expect(new Promise((_, reject) => setTimeout(() => reject("boom"), 10))).rejects.not.toThrow("different");
+    });
+
+    it("should fail clearly when used on a value that is not a Promise", async () => {
+      await expect(expect(42).rejects.toBeDefined()).rejects.toThrow();
     });
   });
 });

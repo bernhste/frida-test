@@ -44,25 +44,6 @@ describe('Classloader', () => {
 
 Tests can be nested to any depth and can be synchronous or asynchronous.
 
-### Test Discovery
-
-The framework collects every file matching `*.test.ts` in the directories passed on the command line, recursively.
-
-A good practice is to create test files next to the source code file as shown here:
-
-```text
-myProject/
-├── android/
-│   ├── classLoader.ts
-│   └── classLoader.test.ts
-├── ios/
-│   ├── objcRuntime.ts
-│   └── objcRuntime.test.ts
-└── shared/
-    ├── helper.ts
-    └── helper.test.ts
-```
-
 ## Matchers
 
 `expect(actualValue)` returns a `Matchers` object which we can use to test for the expected value. Use the following functions to do that:
@@ -78,8 +59,9 @@ myProject/
 | `.toBeUndefined()` | Value is `undefined` |
 | `.toBeGreaterThan(value)` | Numeric value is greater than `value` |
 | `.toBeLessThan(value)` | Numeric value is less than `value` |
-| `.toContain(value)` | Value (array, string, etc.) contains `value` |
-| `.toThrow(errorMatch)` | Exception thrown; optionally matches a string message or `Error` instance |
+| `.toContain(value)` | Array, `Set`, or string contains `value` (array/`Set` items compared with `===`) |
+| `.toContainEqual(value)` | Array or `Set` contains an item deeply equal to `value` |
+| `.toThrow(errorMatch?)` | Function throws; `errorMatch` can be a substring, a `RegExp` matched against the message, an `Error` instance (message equality only), or an `Error` class (`instanceof` check) |
 | `.toHaveBeenCalled()` | Mock/spy was called at least once |
 | `.toHaveBeenCalledTimes(count)` | Mock/spy was called exactly `count` times |
 | `.toHaveBeenCalledWith(...expected)` | Mock/spy was called (at any point) with the expected arguments |
@@ -91,13 +73,11 @@ myProject/
 
 ### Modifiers
 
-Like [Jest's `expect` modifiers](https://jestjs.io/docs/expect#modifiers), a matcher can be prefixed with one of:
-
 | Modifier | Description |
 | --- | --- |
 | `.not` | Inverts the assertion result, e.g. `expect(2 + 2).not.toBe(5)` |
-| `.resolves` | Unwraps a resolved promise so a matcher applies to its value; the assertion must be `await`ed |
-| `.rejects` | Unwraps a rejected promise so a matcher applies to its reason; the assertion must be `await`ed |
+| `.resolves` | Unwraps a resolved promise so a matcher applies to its value; the assertion must be `await`ed. The received value must actually be a `Promise` - it fails otherwise |
+| `.rejects` | Unwraps a rejected promise so a matcher applies to its reason; the assertion must be `await`ed. The received value must actually be a `Promise` - it fails otherwise |
 
 ```typescript
 await expect(fetchUser(1)).resolves.toEqual({ id: 1, name: 'Ada' });
@@ -114,10 +94,12 @@ await expect(fetchUser(1)).resolves.not.toBeNull();
 - `fn(implementation?)`: creates a standalone mock function, optionally backed by `implementation`.
 - `spyOn(object, methodName)`: replaces `object[methodName]` with a mock that calls through to the original method by default, and can be restored later.
 
-Both return the same `Mock` type:
+Both are also reachable through `fridaTest`, a global namespace object analogous to [Jest's `jest` object](https://jestjs.io/docs/jest-object) (`fridaTest.fn(...)`, `fridaTest.spyOn(...)`) - it only exposes what's implemented above, not the full Jest object surface (no fake timers or module mocking).
+
+Both forms return the same `Mock` type:
 
 ```typescript
-const mock = fn((a: number, b: number) => a + b);
+const mock = fridaTest.fn((a: number, b: number) => a + b);
 mock(1, 2);
 
 expect(mock).toHaveBeenCalledWith(1, 2);
@@ -128,8 +110,8 @@ mock.mockReturnValue(42);       // set a default return value
 mock.mockReturnValueOnce(99);   // ...for just the next call
 mock.mockResolvedValue(value);  // wraps value in Promise.resolve()
 mock.mockRejectedValue(error);  // wraps error in Promise.reject()
-mock.mockImplementation(fn);    // replace the implementation
-mock.mockImplementationOnce(fn); // ...for just the next call
+mock.mockImplementation(impl);    // replace the implementation
+mock.mockImplementationOnce(impl); // ...for just the next call
 
 mock.mockClear();   // reset calls/results, keep the implementation
 mock.mockReset();   // reset calls/results and drop the implementation
@@ -139,7 +121,7 @@ mock.mockRestore(); // reset like mockReset(); for spyOn(), also restores the or
 ```typescript
 describe('Logger', () => {
   it('should call the underlying console method', () => {
-    const spy = spyOn(console, 'log').mockImplementation(() => undefined);
+    const spy = fridaTest.spyOn(console, 'log').mockImplementation(() => undefined);
     logMessage('hello');
     expect(spy).toHaveBeenCalledWith('hello');
     spy.mockRestore();

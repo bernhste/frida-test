@@ -1,7 +1,10 @@
 import { isMock, type Mock } from "./mock.js";
 
-export type Containable<T> = T extends readonly (infer U)[] ? U : T extends string ? string : never;
+export type Containable<T> = T extends readonly (infer U)[] ? U : T extends ReadonlySet<infer U> ? U : T extends string ? string : never;
 export type Numeric<T> = T extends number ? number : never;
+
+export type ErrorClass = new (...args: any[]) => Error;
+export type ErrorMatch = string | RegExp | Error | ErrorClass;
 
 export interface Assertions<T> {
   toBe(expected: T): void;
@@ -14,7 +17,8 @@ export interface Assertions<T> {
   toBeGreaterThan(expected: Numeric<T>): void;
   toBeLessThan(expected: Numeric<T>): void;
   toContain(expected: Containable<T>): void;
-  toThrow(errorMatch?: string | Error): void;
+  toContainEqual(expected: Containable<T>): void;
+  toThrow(errorMatch?: ErrorMatch): void;
   toHaveBeenCalled(): void;
   toHaveBeenCalledTimes(expected: number): void;
   toHaveBeenCalledWith(...expected: unknown[]): void;
@@ -75,22 +79,30 @@ function assertIsNumber(value: unknown, label: string): asserts value is number 
   assert(typeof value === "number", `Expected ${label} to be a number`);
 }
 
-// Shared with modifiers.ts so `.rejects.toThrow(errorMatch)` matches an already-caught rejection
-// reason using the exact same rule as the synchronous `toThrow(errorMatch)`.
-export function matchesThrown(caught: unknown, errorMatch: string | Error): boolean {
+export function matchesThrown(caught: unknown, errorMatch: ErrorMatch): boolean {
   if (typeof errorMatch === "string") {
     const message = caught instanceof Error ? caught.message : String(caught);
     return message.includes(errorMatch);
   }
-  return caught instanceof Error && caught instanceof errorMatch.constructor && caught.message === errorMatch.message;
+  if (errorMatch instanceof RegExp) {
+    const message = caught instanceof Error ? caught.message : String(caught);
+    return errorMatch.test(message);
+  }
+  if (errorMatch instanceof Error) {
+    return caught instanceof Error && caught.message === errorMatch.message;
+  }
+  return caught instanceof errorMatch;
 }
 
 export function describeCaught(caught: unknown): string {
   return caught instanceof Error ? `${caught.constructor.name}: "${caught.message}"` : JSON.stringify(caught);
 }
 
-function describeErrorMatch(errorMatch: string | Error): string {
-  return typeof errorMatch === "string" ? `a message including "${errorMatch}"` : `${errorMatch.constructor.name}: "${errorMatch.message}"`;
+function describeErrorMatch(errorMatch: ErrorMatch): string {
+  if (typeof errorMatch === "string") return `a message including "${errorMatch}"`;
+  if (errorMatch instanceof RegExp) return `a message matching ${errorMatch}`;
+  if (errorMatch instanceof Error) return `${errorMatch.constructor.name}: "${errorMatch.message}"`;
+  return `an instance of ${errorMatch.name}`;
 }
 
 export function createMatcher<T>(actual: T, negated = false): Assertions<T> {
@@ -122,10 +134,21 @@ export function createMatcher<T>(actual: T, negated = false): Assertions<T> {
     },
 
     toContain: (expected) => {
-      assert(typeof actual === "string" || Array.isArray(actual), "Expected an array or string");
+      assert(typeof actual === "string" || Array.isArray(actual) || actual instanceof Set, "Expected an array, Set, or string");
       const contains =
-        typeof actual === "string" ? actual.includes(expected as string) : (actual as readonly unknown[]).some((item) => deepEqual(item, expected));
+        typeof actual === "string"
+          ? actual.includes(expected as string)
+          : actual instanceof Set
+            ? actual.has(expected)
+            : (actual as readonly unknown[]).includes(expected);
       check(contains, `Expected ${JSON.stringify(actual)} ${phrase} contain ${JSON.stringify(expected)}`);
+    },
+
+    toContainEqual: (expected) => {
+      assert(Array.isArray(actual) || actual instanceof Set, "Expected an array or Set");
+      const items = actual instanceof Set ? [...actual] : (actual as readonly unknown[]);
+      const contains = items.some((item) => deepEqual(item, expected));
+      check(contains, `Expected ${JSON.stringify(actual)} ${phrase} contain an item equal to ${JSON.stringify(expected)}`);
     },
 
     toThrow: (errorMatch) => {
