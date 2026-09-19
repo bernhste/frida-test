@@ -20,7 +20,18 @@ jobs:
         uses: ./.github/actions/setup-node
 
       - name: Run unit tests
-        run: npm run test:unit
+        run: |
+          set +e
+          npm run test:unit > test-output-unit.log 2>&1
+          status=$?
+          cat test-output-unit.log
+          {
+            echo "### Unit tests"
+            echo '```'
+            cat test-output-unit.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $status
 
   build:
     uses: ./.github/workflows/build.yml
