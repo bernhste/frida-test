@@ -94,8 +94,6 @@ await expect(fetchUser(1)).resolves.not.toBeNull();
 - `fn(implementation?)`: creates a standalone mock function, optionally backed by `implementation`.
 - `spyOn(object, methodName)`: replaces `object[methodName]` with a mock that calls through to the original method by default, and can be restored later.
 
-Both are also reachable through `fridaTest`, a global namespace object analogous to [Jest's `jest` object](https://jestjs.io/docs/jest-object) (`fridaTest.fn(...)`, `fridaTest.spyOn(...)`) - it only exposes what's implemented above, not the full Jest object surface (no fake timers or module mocking).
-
 Both forms return the same `Mock` type:
 
 ```typescript
