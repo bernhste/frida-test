@@ -35,7 +35,7 @@ const AGENT_MESSAGE_TYPES: Record<AgentMessage["type"], true> = {
 export function isAgentMessage(value: unknown): value is AgentMessage {
   if (typeof value !== "object" || value === null) return false;
   const { type } = value as { type?: unknown };
-  return typeof type === "string" && type in AGENT_MESSAGE_TYPES;
+  return typeof type === "string" && Object.hasOwn(AGENT_MESSAGE_TYPES, type);
 }
 
 export interface RunSummary {

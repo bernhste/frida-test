@@ -1,4 +1,4 @@
-/// <reference types="../src/agent-runtime/globals.d.ts" />
+/// <reference types="../../src/agent-runtime/globals.d.ts" />
 describe("Hooks", () => {
   describe("beforeEach / afterEach", () => {
     let counter = 0;

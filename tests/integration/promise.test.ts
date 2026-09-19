@@ -1,4 +1,4 @@
-/// <reference types="../src/agent-runtime/globals.d.ts" />
+/// <reference types="../../src/agent-runtime/globals.d.ts" />
 describe("Promise modifiers", () => {
   describe("resolves", () => {
     it("should pass when the resolved value matches", async () => {

@@ -26,7 +26,7 @@
   "typesVersions": {
     "*": {
       "protocol.js": [
-        "./dist/protocol.d.ts"
+        "./dist/host/protocol.d.ts"
       ]
     }
   },
@@ -36,8 +36,8 @@
       "default": "./src/agent-runtime/globals.js"
     },
     "./protocol.js": {
-      "types": "./dist/protocol.d.ts",
-      "default": "./dist/protocol.js"
+      "types": "./dist/host/protocol.d.ts",
+      "default": "./dist/host/protocol.js"
     }
   },
   "files": [
@@ -49,16 +49,22 @@
     "build": "tsc -b",
     "watch": "tsc -b --watch",
     "clean": "tsc -b --clean && rimraf dist",
-    "test:android": "npm run build && npx frida-test -U -f 'com.google.android.dialer' ./tests/",
-    "prepublishOnly": "npm run clean && npm run build && npm run test:android"
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:integration:android": "npm run build && npx frida-test -U -f 'com.google.android.dialer' ./tests/integration/",
+    "prepublishOnly": "npm run clean && npm run build && npm run test:unit && npm run test:integration:android"
   },
   "dependencies": {
     "chalk": "^6.0.0",
     "frida-compile": "^19.0.5"
   },
   "devDependencies": {
+    "@jest/globals": "^30.5.2",
+    "@swc/core": "^1.16.2",
+    "@swc/jest": "^0.2.39",
     "@types/frida-gum": "^19.10.0",
-    "@types/node": "^26.4.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.2",
+    "jest": "^30.5.2",
     "rimraf": "^6.1.3",
     "typescript": "^7.0.2"
   },

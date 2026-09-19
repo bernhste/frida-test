@@ -1,4 +1,4 @@
-/// <reference types="../src/agent-runtime/globals.d.ts" />
+/// <reference types="../../src/agent-runtime/globals.d.ts" />
 describe("fridaTest.fn", () => {
   it("should track calls without an implementation", () => {
     const mock = fridaTest.fn();

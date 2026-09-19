@@ -1,4 +1,4 @@
-/// <reference types="../src/agent-runtime/globals.d.ts" />
+/// <reference types="../../src/agent-runtime/globals.d.ts" />
 const sharedTarget = { warn: (_msg: string): void => undefined };
 
 describe("Suite isolation: consumer A", () => {
