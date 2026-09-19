@@ -49,7 +49,7 @@
     "build": "tsc -b",
     "watch": "tsc -b --watch",
     "clean": "tsc -b --clean && rimraf dist",
-    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:unit": "jest",
     "test:integration:android": "npm run build && npx frida-test -U -f 'com.google.android.dialer' ./tests/integration/",
     "prepublishOnly": "npm run clean && npm run build && npm run test:unit && npm run test:integration:android"
   },

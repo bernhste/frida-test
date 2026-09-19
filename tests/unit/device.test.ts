@@ -1,16 +1,22 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
-const manager = { addRemoteDevice: jest.fn(async (..._a: unknown[]) => "remote-added") };
-const frida = {
-  getUsbDevice: jest.fn(async () => "usb"),
-  getLocalDevice: jest.fn(async () => "local"),
-  getRemoteDevice: jest.fn(async () => "remote"),
-  getDevice: jest.fn(async (id: string) => `id:${id}`),
-  getDeviceManager: jest.fn(() => manager),
-};
-jest.unstable_mockModule("frida", () => ({ default: frida }));
+jest.mock("frida", () => {
+  const manager = { addRemoteDevice: jest.fn(async (..._a: unknown[]) => "remote-added") };
+  return {
+    __esModule: true,
+    default: {
+      getUsbDevice: jest.fn(async () => "usb"),
+      getLocalDevice: jest.fn(async () => "local"),
+      getRemoteDevice: jest.fn(async () => "remote"),
+      getDevice: jest.fn(async (id: string) => `id:${id}`),
+      getDeviceManager: jest.fn(() => manager),
+    },
+  };
+});
 
-const { resolveDevice } = await import("../../src/host/device.js");
+const { resolveDevice } = require("../../src/host/device.js") as typeof import("../../src/host/device.js");
+const frida = (jest.requireMock("frida") as { default: { getDeviceManager: () => { addRemoteDevice: jest.Mock } } }).default;
+const manager = frida.getDeviceManager();
 
 beforeEach(() => {
   jest.clearAllMocks();
