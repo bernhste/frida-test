@@ -22,7 +22,7 @@
     "frida-test": "bin/frida-test.js",
     "frida-test-compile": "bin/frida-test-compile.js"
   },
-  "types": "./dist/agent-runtime/globals.d.ts",
+  "types": "./src/agent-runtime/globals.d.ts",
   "typesVersions": {
     "*": {
       "protocol.js": [
